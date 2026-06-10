@@ -1,5 +1,5 @@
-import { memo, useCallback, useRef } from 'react';
-import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
+import { memo, useCallback, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { Handle, Position, useReactFlow, useStore, type NodeProps } from '@xyflow/react';
 import { formatCost, type BranchNode } from '@reader/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import { branchCost } from '../state/cost';
@@ -26,6 +26,9 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
   const deleteBranch = useCanvasStore((s) => s.deleteBranch);
   const toggleCollapsed = useCanvasStore((s) => s.toggleCollapsed);
   const flash = useCanvasStore((s) => s.flash);
+  const resizeBranchLocal = useCanvasStore((s) => s.resizeBranchLocal);
+  const persistBranchSize = useCanvasStore((s) => s.persistBranchSize);
+  const zoom = useStore((s) => s.transform[2]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -53,14 +56,51 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
     }, 380);
   }, [branch, fitView, flash, id]);
 
+  // Corner drag-resize. Deltas are screen px → divide by zoom for flow px.
+  const onResizeStart = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const z = zoom || 1;
+      const startW = rect.width / z;
+      const startH = rect.height / z;
+      const sx = e.clientX;
+      const sy = e.clientY;
+      const onMove = (me: PointerEvent) => {
+        const w = Math.max(300, Math.round(startW + (me.clientX - sx) / z));
+        const h = Math.max(200, Math.round(startH + (me.clientY - sy) / z));
+        resizeBranchLocal(id, w, h);
+      };
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        persistBranchSize(id);
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    },
+    [id, zoom, resizeBranchLocal, persistBranchSize],
+  );
+
   if (!branch) return null;
   const isStreaming = streamingText !== null;
   const cost = branchCost(branch);
+  const style =
+    isCollapsed
+      ? { width: branch.width ?? 380 }
+      : {
+          width: branch.width ?? 380,
+          ...(branch.height ? { height: branch.height, maxHeight: 'none' as const } : {}),
+        };
 
   return (
     <div
       ref={containerRef}
       className={`branch-node${isCollapsed ? ' is-collapsed' : ''}${isFlashing ? ' is-flashing' : ''}`}
+      style={style}
     >
       <Handle
         type="target"
@@ -143,6 +183,13 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
         branchIds={isCollapsed ? [] : anchored.map((b) => b.id)}
         version={anchored.length + branch.messages.length + (isCollapsed ? 1 : 0)}
       />
+      {!isCollapsed && (
+        <div
+          className="resize-handle nodrag nowheel"
+          title="Drag to resize"
+          onPointerDown={onResizeStart}
+        />
+      )}
     </div>
   );
 });

@@ -49,6 +49,11 @@ function makeDocumentNode(docId: string): DocumentNode {
 
 documentsRoute.get('/', (c) => c.json({ documents: store.listDocuments() }));
 
+documentsRoute.delete('/:docId', async (c) => {
+  const ok = await store.deleteDocument(c.req.param('docId'));
+  return ok ? c.body(null, 204) : c.json({ error: 'document not found' }, 404);
+});
+
 documentsRoute.post('/', async (c) => {
   const body = createDocumentSchema.parse(await c.req.json());
   const document: Doc = {

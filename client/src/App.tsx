@@ -7,10 +7,12 @@ import { docCost } from './state/cost';
 import { CanvasView } from './canvas/Canvas';
 import { ModelPicker } from './components/ModelPicker';
 import { DisplayControls } from './components/DisplayControls';
+import { navigateHome, navigateToDoc, useDocumentRouting } from './routing';
 
 export default function App() {
   const hasDoc = useCanvasStore((s) => s.doc !== null);
   const loadConfig = useCanvasStore((s) => s.loadConfig);
+  useDocumentRouting();
 
   useEffect(() => {
     void loadConfig().catch(() => undefined);
@@ -26,13 +28,12 @@ export default function App() {
 
 function CanvasScreen() {
   const title = useCanvasStore((s) => s.doc?.title ?? '');
-  const reset = useCanvasStore((s) => s.reset);
   const globalError = useCanvasStore((s) => s.errors.global);
   const total = useCanvasStore((s) => docCost(s.nodes, s.doc));
   return (
     <div className="canvas-screen">
       <div className="top-bar">
-        <button onClick={reset}>← Documents</button>
+        <button onClick={navigateHome}>← Documents</button>
         <strong>{title}</strong>
         <span
           className="doc-cost"
@@ -56,7 +57,6 @@ function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
   const setCanvas = useCanvasStore((s) => s.setCanvas);
-  const loadCanvas = useCanvasStore((s) => s.loadCanvas);
 
   useEffect(() => {
     api
@@ -71,6 +71,7 @@ function HomePage() {
     try {
       const { document, canvas } = await api.createDocument('markdown', pasteText);
       setCanvas(document, canvas.nodes);
+      navigateToDoc(document.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -81,12 +82,22 @@ function HomePage() {
     onDone: (document: Parameters<typeof setCanvas>[0], canvas: { nodes: Parameters<typeof setCanvas>[1] }) => {
       setImportPreview(null);
       setCanvas(document, canvas.nodes);
+      navigateToDoc(document.id);
     },
     onError: (err: { type: string; status: number; message: string }) => {
       setImportPreview(null);
       setError(`${err.type} (${err.status}): ${err.message}`);
     },
   };
+
+  async function removeDoc(id: string) {
+    try {
+      await api.deleteDocument(id);
+      setDocs((ds) => ds.filter((d) => d.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   async function handlePaste(e: React.ClipboardEvent) {
     const item = [...e.clipboardData.items].find((i) => i.type.startsWith('image/'));
@@ -169,14 +180,19 @@ function HomePage() {
         <div className="doc-list">
           <h2>Recent documents</h2>
           {docs.map((d) => (
-            <button
-              key={d.id}
-              className="doc-list-item"
-              onClick={() => void loadCanvas(d.id).catch((e) => setError(String(e)))}
-            >
-              <span>{d.title}</span>
-              <span className="doc-date">{new Date(d.createdAt).toLocaleDateString()}</span>
-            </button>
+            <div key={d.id} className="doc-list-item">
+              <button className="doc-open" onClick={() => navigateToDoc(d.id)}>
+                <span>{d.title}</span>
+                <span className="doc-date">{new Date(d.createdAt).toLocaleDateString()}</span>
+              </button>
+              <button
+                className="doc-del"
+                title="Delete document"
+                onClick={() => void removeDoc(d.id)}
+              >
+                ×
+              </button>
+            </div>
           ))}
         </div>
       )}

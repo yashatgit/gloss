@@ -61,6 +61,7 @@ export interface DocumentNode {
   docId: string;
   position: Position;
   width: number;
+  height?: number;
 }
 
 export interface BranchNode {
@@ -73,6 +74,9 @@ export interface BranchNode {
   anchor: Anchor;
   title: string;
   messages: ChatMessage[];
+  /** User-resized dimensions (px). Absent → default size. */
+  width?: number;
+  height?: number;
 }
 
 export type CanvasNode = DocumentNode | BranchNode;

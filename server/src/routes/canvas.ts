@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { patchPositionSchema } from '@reader/shared';
+import { patchNodeSchema } from '@reader/shared';
 import { store } from '../store/store';
 
 export const canvasRoute = new Hono();
@@ -11,7 +11,12 @@ canvasRoute.get('/canvas/:docId', (c) => {
 });
 
 canvasRoute.patch('/nodes/:nodeId/position', async (c) => {
-  const body = patchPositionSchema.parse(await c.req.json());
-  const ok = store.updateNodePosition(body.docId, c.req.param('nodeId'), body.x, body.y);
+  const body = patchNodeSchema.parse(await c.req.json());
+  const ok = store.updateNode(body.docId, c.req.param('nodeId'), {
+    x: body.x,
+    y: body.y,
+    width: body.width,
+    height: body.height,
+  });
   return ok ? c.body(null, 204) : c.json({ error: 'node not found' }, 404);
 });

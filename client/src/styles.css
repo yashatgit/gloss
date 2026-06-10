@@ -199,19 +199,39 @@ input {
 }
 .doc-list-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  text-align: left;
-  padding: 14px 18px;
+  align-items: stretch;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--glass);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
   font-size: 15px;
+  overflow: hidden;
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
 .doc-list-item:hover { transform: translateY(-1px); border-color: var(--accent); }
+.doc-open {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 14px 18px;
+  border: none;
+  background: none;
+  font: inherit;
+}
+.doc-del {
+  border: none;
+  background: none;
+  width: 44px;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--faint);
+  border-left: 1px solid var(--border);
+}
+.doc-del:hover { color: #c8372b; background: rgba(255, 59, 48, 0.1); }
 .doc-date { color: var(--faint); font-size: 13px; }
 .import-preview {
   border: 1px solid var(--border);
@@ -403,6 +423,28 @@ input {
   pointer-events: none;
 }
 
+/* corner resize grip on branch nodes */
+.resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  border-radius: 0 0 var(--radius-lg) 0;
+  background: linear-gradient(
+    135deg,
+    transparent 0 48%,
+    var(--faint) 48% 56%,
+    transparent 56% 70%,
+    var(--faint) 70% 78%,
+    transparent 78%
+  );
+  opacity: 0.5;
+  z-index: 3;
+}
+.resize-handle:hover { opacity: 1; }
+
 .doc-node.is-flashing,
 .branch-node.is-flashing { animation: nodePulse 1.2s ease; }
 @keyframes nodePulse {
@@ -414,7 +456,7 @@ input {
    Reading typography — Confluence-style (sans, generous spacing,
    line-numbered code blocks). Font-scale aware.
    ============================================================ */
-.markdown-body { font-family: var(--font-ui); color: var(--ink); }
+.markdown-body { font-family: var(--font-ui); color: var(--ink); overflow-wrap: break-word; }
 .markdown-body > :first-child { margin-top: 0; }
 .markdown-body > :last-child { margin-bottom: 0; }
 
@@ -431,8 +473,9 @@ input {
 .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 1.6em 0; }
 .markdown-body a { color: var(--accent); text-decoration: none; }
 .markdown-body a:hover { text-decoration: underline; }
-.markdown-body table { border-collapse: collapse; margin: 0 0 1.1em; font-size: 0.95em; }
-.markdown-body th, .markdown-body td { border: 1px solid var(--code-border); padding: 7px 12px; text-align: left; }
+.cf-table-wrap { max-width: 100%; overflow-x: auto; margin: 0 0 1.1em; }
+.markdown-body table { border-collapse: collapse; font-size: 0.95em; }
+.markdown-body th, .markdown-body td { border: 1px solid var(--code-border); padding: 7px 12px; text-align: left; white-space: nowrap; }
 .markdown-body th { background: var(--gutter-bg); font-weight: 600; }
 
 /* inline code — Confluence pill */

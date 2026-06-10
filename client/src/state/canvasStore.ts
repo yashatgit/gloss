@@ -106,6 +106,8 @@ interface CanvasState {
 
   moveNodeLocal(nodeId: string, position: Position): void;
   persistPosition(nodeId: string, position: Position): void;
+  resizeBranchLocal(nodeId: string, width: number, height: number): void;
+  persistBranchSize(nodeId: string): void;
 
   createBranch(
     parentNodeId: string,
@@ -239,7 +241,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       nodes: nodes.map((n) => (positions[n.id] ? { ...n, position: positions[n.id]! } : n)),
     });
     for (const [id, pos] of Object.entries(positions)) {
-      void api.patchPosition(id, doc.id, pos.x, pos.y);
+      void api.patchNode(id, doc.id, { x: pos.x, y: pos.y });
     }
   },
 
@@ -320,7 +322,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const doc = get().doc;
     if (!doc) return;
     get().moveNodeLocal(nodeId, position);
-    void api.patchPosition(nodeId, doc.id, position.x, position.y);
+    void api.patchNode(nodeId, doc.id, { x: position.x, y: position.y });
+  },
+
+  resizeBranchLocal: (nodeId, width, height) =>
+    set((s) => ({
+      nodes: s.nodes.map((n) =>
+        n.kind === 'branch' && n.id === nodeId ? { ...n, width, height } : n,
+      ),
+    })),
+
+  persistBranchSize: (nodeId) => {
+    const doc = get().doc;
+    if (!doc) return;
+    const node = get().nodes.find((n) => n.id === nodeId);
+    if (node?.kind !== 'branch' || node.width == null || node.height == null) return;
+    void api.patchNode(nodeId, doc.id, { width: node.width, height: node.height });
   },
 
   createBranch: async (parentNodeId, anchor, title, position, firstMessage) => {
@@ -332,7 +349,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       // Glide to the new branch (sendMessage will re-affirm focus on stream start).
       set((s) => ({ nodes: [...s.nodes, node], focusTarget: node.id, tidyNonce: s.tidyNonce + 1 }));
       if (position) {
-        void api.patchPosition(node.id, doc.id, position.x, position.y);
+        void api.patchNode(node.id, doc.id, { x: position.x, y: position.y });
       }
       if (firstMessage) {
         void get().sendMessage(node.id, firstMessage);

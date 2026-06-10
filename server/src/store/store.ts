@@ -118,13 +118,44 @@ class Store {
     return true;
   }
 
-  updateNodePosition(docId: string, nodeId: string, x: number, y: number): boolean {
+  updateNode(
+    docId: string,
+    nodeId: string,
+    patch: { x?: number; y?: number; width?: number; height?: number },
+  ): boolean {
     const state = this.docs.get(docId);
     if (!state) return false;
     const node = state.canvas.nodes.find((n) => n.id === nodeId);
     if (!node) return false;
-    node.position = { x, y };
+    if (patch.x !== undefined && patch.y !== undefined) node.position = { x: patch.x, y: patch.y };
+    if (patch.width !== undefined) (node as { width?: number }).width = patch.width;
+    if (patch.height !== undefined) (node as { height?: number }).height = patch.height;
     this.scheduleWrite(docId);
+    return true;
+  }
+
+  /** Delete a document and everything under it (files, index entry, in-memory). */
+  async deleteDocument(docId: string): Promise<boolean> {
+    const state = this.docs.get(docId);
+    if (!state) return false;
+    const pending = this.pendingWrites.get(docId);
+    if (pending) {
+      clearTimeout(pending);
+      this.pendingWrites.delete(docId);
+    }
+    for (const node of state.canvas.nodes) {
+      if (node.kind === 'branch') this.branchIndex.delete(node.id);
+    }
+    this.docs.delete(docId);
+    this.index = this.index.filter((e) => e.id !== docId);
+    this.indexDirty = true;
+    try {
+      await fsp.rm(docDir(docId), { recursive: true, force: true });
+      await atomicWrite(indexPath(), JSON.stringify(this.index, null, 2));
+      this.indexDirty = false;
+    } catch (err) {
+      console.error(`store: delete failed for ${docId}:`, err);
+    }
     return true;
   }
 

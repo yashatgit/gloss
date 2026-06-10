@@ -209,14 +209,22 @@ export function importImage(
   );
 }
 
-export function patchPosition(nodeId: string, docId: string, x: number, y: number) {
+export function patchNode(
+  nodeId: string,
+  docId: string,
+  patch: { x?: number; y?: number; width?: number; height?: number },
+) {
   return fetch(`${BASE}/nodes/${nodeId}/position`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ docId, x, y }),
+    body: JSON.stringify({ docId, ...patch }),
   });
 }
 
 export function deleteBranch(branchId: string) {
   return fetch(`${BASE}/branches/${branchId}`, { method: 'DELETE' });
+}
+
+export function deleteDocument(docId: string) {
+  return fetch(`${BASE}/documents/${docId}`, { method: 'DELETE' });
 }

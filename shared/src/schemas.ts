@@ -47,14 +47,16 @@ export const regenerateSchema = z.object({
   model: modelId,
 });
 
-export const patchPositionSchema = z.object({
+export const patchNodeSchema = z.object({
   docId: z.string(),
-  x: z.number(),
-  y: z.number(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  width: z.number().min(120).max(2000).optional(),
+  height: z.number().min(80).max(2000).optional(),
 });
 
 export type CreateDocumentBody = z.infer<typeof createDocumentSchema>;
 export type ImportImageBody = z.infer<typeof importImageSchema>;
 export type CreateBranchBody = z.infer<typeof createBranchSchema>;
 export type SendMessageBody = z.infer<typeof sendMessageSchema>;
-export type PatchPositionBody = z.infer<typeof patchPositionSchema>;
+export type PatchNodeBody = z.infer<typeof patchNodeSchema>;

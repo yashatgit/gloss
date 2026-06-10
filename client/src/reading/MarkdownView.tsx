@@ -54,6 +54,12 @@ const mdComponents: Components = {
   pre: ({ children }) => <CodeBlock raw={nodeText(children)} />,
   // Only inline code reaches this (block code is handled by `pre`).
   code: ({ children }) => <code className="cf-inline">{children}</code>,
+  // Wrap tables so wide ones scroll horizontally instead of overflowing the node.
+  table: ({ children }) => (
+    <div className="cf-table-wrap nowheel">
+      <table>{children}</table>
+    </div>
+  ),
 };
 
 export const MarkdownView = memo(function MarkdownView({
