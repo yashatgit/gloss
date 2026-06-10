@@ -42,7 +42,7 @@ function CanvasInner() {
   const domainNodes = useCanvasStore((s) => s.nodes);
   const persistPosition = useCanvasStore((s) => s.persistPosition);
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
-  useNativeScrollPan();
+  useCanvasNavigation();
 
   // Sync domain → React Flow, preserving RF's own node objects (drag state,
   // measured dimensions) for nodes that already exist.
@@ -102,12 +102,13 @@ function CanvasInner() {
         maxZoom={2}
         nodesConnectable={false}
         deleteKeyCode={null}
-        // Wheel panning is handled by useNativeScrollPan (1:1 with raw deltas,
-        // so trackpad momentum feels like native page scroll). RF only owns
-        // pinch-zoom and drag-pan here.
+        // All wheel/pinch nav is handled by useCanvasNavigation (Figma-style:
+        // scroll pans with momentum, pinch + ⌘/Ctrl-scroll zoom to the cursor).
+        // RF only keeps left-drag-to-pan on empty canvas.
         panOnScroll={false}
         zoomOnScroll={false}
-        zoomOnPinch
+        zoomOnPinch={false}
+        zoomOnDoubleClick={false}
         panOnDrag
         onNodeDragStop={(_, node) => persistPosition(node.id, node.position)}
       >
@@ -121,13 +122,19 @@ function CanvasInner() {
   );
 }
 
+const MIN_ZOOM = 0.05;
+const MAX_ZOOM = 2;
+const ZOOM_SENSITIVITY = 0.0016; // exp factor per wheel delta unit
+
 /**
- * Native-feeling wheel/trackpad panning: pans the viewport 1:1 with raw wheel
- * deltas so the OS's momentum-phase events carry through exactly like scrolling
- * a webpage. Leaves pinch-zoom (ctrl/meta + wheel) to React Flow, and lets
- * `.nowheel` regions (node scroll areas) scroll natively.
+ * Figma-style canvas navigation, all on the wheel:
+ *   • two-finger / wheel scroll → pan (1:1 with deltas, so trackpad momentum
+ *     carries through like native scroll; Shift makes a vertical wheel pan
+ *     horizontally)
+ *   • pinch (ctrlKey wheel) and ⌘/Ctrl + scroll → zoom anchored at the cursor
+ * `.nowheel` regions (node scroll areas) keep scrolling natively.
  */
-function useNativeScrollPan() {
+function useCanvasNavigation() {
   const store = useStoreApi();
   const { getViewport, setViewport } = useReactFlow();
 
@@ -136,14 +143,35 @@ function useNativeScrollPan() {
     if (!root) return;
 
     const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) return; // pinch-zoom → React Flow
       const target = e.target as Element | null;
       if (target?.closest('.nowheel')) return; // native scroll inside nodes
       e.preventDefault();
       const vp = getViewport();
-      // Subtract deltas: content follows the gesture, in screen space (so the
-      // feel is identical regardless of zoom level).
-      setViewport({ x: vp.x - e.deltaX, y: vp.y - e.deltaY, zoom: vp.zoom });
+
+      // Pinch sends ctrlKey wheel; ⌘/Ctrl + scroll is an explicit zoom.
+      if (e.ctrlKey || e.metaKey) {
+        const rect = root.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const next = Math.min(
+          MAX_ZOOM,
+          Math.max(MIN_ZOOM, vp.zoom * Math.exp(-e.deltaY * ZOOM_SENSITIVITY)),
+        );
+        // Keep the flow point under the cursor fixed while zooming.
+        const fx = (px - vp.x) / vp.zoom;
+        const fy = (py - vp.y) / vp.zoom;
+        setViewport({ x: px - fx * next, y: py - fy * next, zoom: next });
+        return;
+      }
+
+      // Pan. Shift+vertical-wheel pans horizontally (mouse-wheel convenience).
+      let dx = e.deltaX;
+      let dy = e.deltaY;
+      if (e.shiftKey && dx === 0) {
+        dx = dy;
+        dy = 0;
+      }
+      setViewport({ x: vp.x - dx, y: vp.y - dy, zoom: vp.zoom });
     };
 
     root.addEventListener('wheel', onWheel, { passive: false });
