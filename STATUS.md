@@ -50,15 +50,27 @@ These all require live model calls:
    ancestor context?).
 4. Image transcription quality (paste a real screenshot → readable markdown).
 
-➡️ When the key is in, ask Claude to "run the E2E verification" — there's a pending
-task for it.
+➡️ The `ANTHROPIC_API_KEY` currently in `.env` is **invalid** (returns 401 `invalid
+x-api-key`) — it's a placeholder. Replace it with a real Console key, then ask Claude
+to "run the E2E verification". For OpenAI models, also add a valid `OPENAI_API_KEY`.
+
+## Multi-provider + cost (added)
+
+- **Providers:** Claude (Anthropic) and ChatGPT (OpenAI), behind a common
+  streaming interface in `server/src/ai/providers/`. `chat.ts` dispatches by model.
+- **Model picker:** top bar + home page. Provider-grouped; models whose provider
+  has no API key show as disabled. Selection is global, persisted to localStorage.
+- **Cost readout:** per-message (usage badge), per-branch (branch header), and
+  **document total in the top bar**. Computed client-side from `shared/models.ts`
+  pricing × stored per-message usage — it's an **estimate**; verify prices against
+  provider pages (snapshot 2026-06, links in `models.ts`).
+- **Keys:** set `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY` in `.env`. `/api/config`
+  reports which are present; only keyed providers are selectable.
+- **Default model: `claude-sonnet-4-6`** (`DEFAULT_MODEL` in `shared/models.ts`).
+  $3/$15 per MTok, vision, 2048-token cache minimum. Per-message `model` is stored
+  so cost stays accurate even if you switch models mid-document.
 
 ## Key decisions made
-
-- **Model: `claude-sonnet-4-6`** (was Opus 4.8). One constant in
-  `server/src/ai/client.ts`. Chosen for price/quality: $3/$15 per MTok vs Opus's
-  $5/$25, same 1M context + vision, and a lower 2048-token cache minimum so short
-  docs also cache. Flip the constant to change it everywhere.
 - **UX: spatial canvas** (React Flow) — user-chosen over inline/side-thread.
 - **Stack: Vite+React client + Hono server**, structured so the server runs unchanged
   inside Electron later (v2 desktop build — designed for, not built).
