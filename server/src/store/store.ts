@@ -27,6 +27,7 @@ class Store {
   /** branchId → docId for branch routes that don't carry a docId. */
   private branchIndex = new Map<string, string>();
   private pendingWrites = new Map<string, NodeJS.Timeout>();
+  private activeWrites = new Set<string>();
   private indexDirty = false;
 
   async init(): Promise<void> {
@@ -144,9 +145,26 @@ class Store {
     );
   }
 
+  /** Cancel the debounce and persist immediately (e.g. after a chat reply). */
+  async flushNow(docId: string): Promise<void> {
+    const pending = this.pendingWrites.get(docId);
+    if (pending) {
+      clearTimeout(pending);
+      this.pendingWrites.delete(docId);
+    }
+    await this.writeDoc(docId);
+  }
+
   private async writeDoc(docId: string): Promise<void> {
     const state = this.docs.get(docId);
     if (!state) return;
+    // Never run two writes for the same doc concurrently — overlapping tmp
+    // files would corrupt the rename. Re-schedule so the mutation still lands.
+    if (this.activeWrites.has(docId)) {
+      this.scheduleWrite(docId);
+      return;
+    }
+    this.activeWrites.add(docId);
     try {
       await fsp.mkdir(docDir(docId), { recursive: true });
       await atomicWrite(documentPath(docId), JSON.stringify(state.document, null, 2));
@@ -157,6 +175,8 @@ class Store {
       }
     } catch (err) {
       console.error(`store: write failed for ${docId}:`, err);
+    } finally {
+      this.activeWrites.delete(docId);
     }
   }
 

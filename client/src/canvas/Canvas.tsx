@@ -43,16 +43,27 @@ function CanvasInner() {
   useEffect(() => {
     setRfNodes((prev) => {
       const prevById = new Map(prev.map((n) => [n.id, n]));
-      return domainNodes.map(
-        (dn) =>
-          prevById.get(dn.id) ?? {
+      return domainNodes.map((dn) => {
+        const existing = prevById.get(dn.id);
+        if (!existing) {
+          return {
             id: dn.id,
             type: dn.kind,
             position: dn.position,
             data: {},
             dragHandle: '.node-drag-handle',
-          },
-      );
+          };
+        }
+        // Propagate domain position changes — but never mid-drag, or the node
+        // snaps back to the stale store position under the cursor.
+        if (
+          !existing.dragging &&
+          (existing.position.x !== dn.position.x || existing.position.y !== dn.position.y)
+        ) {
+          return { ...existing, position: dn.position };
+        }
+        return existing;
+      });
     });
   }, [domainNodes, setRfNodes]);
 

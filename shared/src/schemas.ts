@@ -7,7 +7,9 @@ export const createDocumentSchema = z.object({
 
 export const importImageSchema = z.object({
   media_type: z.enum(['image/png', 'image/jpeg', 'image/webp', 'image/gif']),
-  data: z.string().min(1), // base64
+  // ~22MB decoded — the client downscales to well under this; the cap stops
+  // a runaway body from exhausting server memory.
+  data: z.string().min(1).max(30_000_000),
 });
 
 export const anchorSchema = z.object({

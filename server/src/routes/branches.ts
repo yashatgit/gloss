@@ -62,8 +62,12 @@ branchesRoute.post('/:branchId/messages', async (c) => {
         createdAt: new Date().toISOString(),
         usage,
       };
-      branch.messages.push(message);
-      store.touch(state.document.id);
+      // The branch may have been deleted while we were streaming — persisting
+      // then would resurrect a zombie branch in the JSON.
+      if (store.getBranch(branch.id)) {
+        branch.messages.push(message);
+        await store.flushNow(state.document.id);
+      }
       console.log(
         `[chat] branch=${branch.id} in=${usage.input_tokens} out=${usage.output_tokens} ` +
           `cache_read=${usage.cache_read_input_tokens} cache_write=${usage.cache_creation_input_tokens}`,
@@ -71,14 +75,14 @@ branchesRoute.post('/:branchId/messages', async (c) => {
       await stream.writeSSE({ event: 'done', data: JSON.stringify({ message, usage }) });
     } catch (err) {
       // Keep whatever streamed before the failure/abort so the user doesn't lose it.
-      if (buffer) {
+      if (buffer && store.getBranch(branch.id)) {
         branch.messages.push({
           id: assistantId,
           role: 'assistant',
           text: buffer,
           createdAt: new Date().toISOString(),
         });
-        store.touch(state.document.id);
+        await store.flushNow(state.document.id);
       }
       await stream.writeSSE({ event: 'error', data: JSON.stringify(toSSEError(err)) });
     }

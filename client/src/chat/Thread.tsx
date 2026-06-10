@@ -25,9 +25,13 @@ export function Thread({
   const containerRef = useRef<HTMLDivElement>(null);
   useImperativeHandle(scrollRef, () => containerRef.current as HTMLDivElement, []);
 
+  // Throttle to one scroll per frame — deltas arrive far faster than 60Hz.
   useEffect(() => {
-    const el = containerRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    const raf = requestAnimationFrame(() => {
+      const el = containerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(raf);
   }, [messages.length, streamingText]);
 
   return (

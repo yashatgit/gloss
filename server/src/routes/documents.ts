@@ -56,10 +56,10 @@ documentsRoute.post('/', async (c) => {
 documentsRoute.post('/import-image', async (c) => {
   const body = importImageSchema.parse(await c.req.json());
   return streamSSE(c, async (stream) => {
+    let markdown = '';
     try {
       const msgStream = createExtractionStream(body);
       c.req.raw.signal.addEventListener('abort', () => msgStream.controller.abort());
-      let markdown = '';
       for await (const event of msgStream) {
         if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
           markdown += event.delta.text;
@@ -95,6 +95,18 @@ documentsRoute.post('/import-image', async (c) => {
         data: JSON.stringify({ document, canvas }),
       });
     } catch (err) {
+      // Don't discard a partial transcription — persist it so it shows up in
+      // the recent-documents list even though this request failed.
+      if (markdown.trim()) {
+        const document: Doc = {
+          id: nanoid(10),
+          title: deriveTitle(markdown) || 'Partial transcription',
+          source: 'image',
+          markdown,
+          createdAt: new Date().toISOString(),
+        };
+        store.createDocument(document, { nodes: [makeDocumentNode(document.id)] });
+      }
       await stream.writeSSE({ event: 'error', data: JSON.stringify(toSSEError(err)) });
     }
   });

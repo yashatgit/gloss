@@ -44,7 +44,18 @@ export async function postSSE(
         else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
       }
       if (dataLines.length > 0) {
-        onEvent(event, JSON.parse(dataLines.join('\n')));
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(dataLines.join('\n'));
+        } catch {
+          onEvent('error', {
+            status: 0,
+            type: 'parse_error',
+            message: 'Malformed event from server',
+          });
+          continue;
+        }
+        onEvent(event, parsed);
       }
     }
   }
