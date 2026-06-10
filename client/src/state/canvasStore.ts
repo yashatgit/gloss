@@ -76,6 +76,9 @@ interface CanvasState {
   flashNodeId: string | null;
   /** Node id the viewport should glide to (set on new request; cleared after). */
   focusTarget: string | null;
+  /** Bumped on major layout changes (create/expand/collapse/delete/reply done)
+   *  to trigger an auto-tidy. NOT bumped on load, so saved layouts persist. */
+  tidyNonce: number;
 
   toggleCollapsed(branchId: string): void;
   applyPositions(positions: Record<string, Position>): void;
@@ -159,6 +162,8 @@ async function consumeStream(
               messages: [...b.messages, message],
             })),
             streaming: clearStreaming(s),
+            // Reply reached final size → re-tidy so it doesn't overlap below.
+            tidyNonce: s.tidyNonce + 1,
           })),
         onError: (e) =>
           set((s) => ({
@@ -216,9 +221,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   collapsed: {},
   flashNodeId: null,
   focusTarget: null,
+  tidyNonce: 0,
 
   toggleCollapsed: (branchId) =>
-    set((s) => ({ collapsed: { ...s.collapsed, [branchId]: !s.collapsed[branchId] } })),
+    set((s) => ({
+      collapsed: { ...s.collapsed, [branchId]: !s.collapsed[branchId] },
+      tidyNonce: s.tidyNonce + 1,
+    })),
 
   requestFocus: (nodeId) => set({ focusTarget: nodeId }),
   clearFocus: () => set({ focusTarget: null }),
@@ -321,7 +330,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       const { node } = await api.createBranch(doc.id, { parentNodeId, anchor, title });
       if (position) node.position = position;
       // Glide to the new branch (sendMessage will re-affirm focus on stream start).
-      set((s) => ({ nodes: [...s.nodes, node], focusTarget: node.id }));
+      set((s) => ({ nodes: [...s.nodes, node], focusTarget: node.id, tidyNonce: s.tidyNonce + 1 }));
       if (position) {
         void api.patchPosition(node.id, doc.id, position.x, position.y);
       }
@@ -386,7 +395,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           }
         }
       }
-      return { nodes: s.nodes.filter((n) => !doomed.has(n.id)) };
+      return { nodes: s.nodes.filter((n) => !doomed.has(n.id)), tidyNonce: s.tidyNonce + 1 };
     });
   },
 }));

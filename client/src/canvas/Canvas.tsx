@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Background,
   Controls,
@@ -43,6 +43,8 @@ function CanvasInner() {
   const persistPosition = useCanvasStore((s) => s.persistPosition);
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
   useCanvasNavigation();
+  const tidy = useTidy();
+  useAutoTidy(tidy);
 
   // Sync domain → React Flow, preserving RF's own node objects (drag state,
   // measured dimensions) for nodes that already exist.
@@ -116,7 +118,7 @@ function CanvasInner() {
         <Controls showInteractive={false} />
         <MiniMap pannable zoomable />
         <FocusController />
-        <CanvasPanel />
+        <CanvasPanel tidy={tidy} />
       </ReactFlow>
     </div>
   );
@@ -179,6 +181,42 @@ function useCanvasNavigation() {
   }, [store, getViewport, setViewport]);
 }
 
+/** Build a tidy callback that lays out using React Flow's MEASURED node sizes. */
+function useTidy() {
+  const applyPositions = useCanvasStore((s) => s.applyPositions);
+  const { getNodes } = useReactFlow();
+  return useCallback(() => {
+    const domain = useCanvasStore.getState().nodes;
+    if (domain.length <= 1) return;
+    const sizeById = new Map(getNodes().map((n) => [n.id, n.measured]));
+    const layoutNodes: LayoutNode[] = domain.map((n) => {
+      const m = sizeById.get(n.id);
+      return {
+        id: n.id,
+        kind: n.kind,
+        parentNodeId: n.kind === 'branch' ? n.parentNodeId : undefined,
+        width: m?.width ?? (n.kind === 'document' ? 720 : 380),
+        height: m?.height ?? (n.kind === 'document' ? 620 : 360),
+      };
+    });
+    applyPositions(tidyPositions(layoutNodes));
+  }, [applyPositions, getNodes]);
+}
+
+/** Auto-tidy on major changes (create/expand/collapse/delete/reply done). The
+ *  store bumps tidyNonce for those; load/switch don't, so saved layouts stay.
+ *  The delay lets the new/resized node get measured before we lay out. */
+function useAutoTidy(tidy: () => void) {
+  const nonce = useCanvasStore((s) => s.tidyNonce);
+  const prev = useRef(nonce);
+  useEffect(() => {
+    if (nonce === prev.current) return;
+    prev.current = nonce;
+    const t = setTimeout(tidy, 160);
+    return () => clearTimeout(t);
+  }, [nonce, tidy]);
+}
+
 /** Glides the viewport to the node the store asks to focus (new branch / request). */
 function FocusController() {
   const focusTarget = useCanvasStore((s) => s.focusTarget);
@@ -198,33 +236,15 @@ function FocusController() {
   return null;
 }
 
-function CanvasPanel() {
+function CanvasPanel({ tidy }: { tidy: () => void }) {
   const docNodeId = useCanvasStore((s) => s.nodes.find((n) => n.kind === 'document')?.id);
   const flash = useCanvasStore((s) => s.flash);
-  const applyPositions = useCanvasStore((s) => s.applyPositions);
-  const { fitView, getNodes } = useReactFlow();
+  const { fitView } = useReactFlow();
 
   const focusDocument = () => {
     if (!docNodeId) return;
     void fitView({ nodes: [{ id: docNodeId }], duration: 350, maxZoom: 1, padding: 0.12 });
     flash(docNodeId);
-  };
-
-  // Tidy using MEASURED node sizes so neither columns nor rows overlap.
-  const tidy = () => {
-    const domain = useCanvasStore.getState().nodes;
-    const sizeById = new Map(getNodes().map((n) => [n.id, n.measured]));
-    const layoutNodes: LayoutNode[] = domain.map((n) => {
-      const m = sizeById.get(n.id);
-      return {
-        id: n.id,
-        kind: n.kind,
-        parentNodeId: n.kind === 'branch' ? n.parentNodeId : undefined,
-        width: m?.width ?? (n.kind === 'document' ? 720 : 380),
-        height: m?.height ?? (n.kind === 'document' ? 620 : 360),
-      };
-    });
-    applyPositions(tidyPositions(layoutNodes));
   };
 
   return (
