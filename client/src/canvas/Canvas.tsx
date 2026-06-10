@@ -3,12 +3,12 @@ import {
   Background,
   Controls,
   MiniMap,
-  PanOnScrollMode,
   Panel,
   ReactFlow,
   ReactFlowProvider,
   useNodesState,
   useReactFlow,
+  useStoreApi,
   type Edge,
   type Node,
 } from '@xyflow/react';
@@ -41,6 +41,7 @@ function CanvasInner() {
   const domainNodes = useCanvasStore((s) => s.nodes);
   const persistPosition = useCanvasStore((s) => s.persistPosition);
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
+  useNativeScrollPan();
 
   // Sync domain → React Flow, preserving RF's own node objects (drag state,
   // measured dimensions) for nodes that already exist.
@@ -100,9 +101,10 @@ function CanvasInner() {
         maxZoom={2}
         nodesConnectable={false}
         deleteKeyCode={null}
-        // Wheel/trackpad pans the canvas like a page; trackpad pinch zooms.
-        panOnScroll
-        panOnScrollMode={PanOnScrollMode.Free}
+        // Wheel panning is handled by useNativeScrollPan (1:1 with raw deltas,
+        // so trackpad momentum feels like native page scroll). RF only owns
+        // pinch-zoom and drag-pan here.
+        panOnScroll={false}
         zoomOnScroll={false}
         zoomOnPinch
         panOnDrag
@@ -116,6 +118,36 @@ function CanvasInner() {
       </ReactFlow>
     </div>
   );
+}
+
+/**
+ * Native-feeling wheel/trackpad panning: pans the viewport 1:1 with raw wheel
+ * deltas so the OS's momentum-phase events carry through exactly like scrolling
+ * a webpage. Leaves pinch-zoom (ctrl/meta + wheel) to React Flow, and lets
+ * `.nowheel` regions (node scroll areas) scroll natively.
+ */
+function useNativeScrollPan() {
+  const store = useStoreApi();
+  const { getViewport, setViewport } = useReactFlow();
+
+  useEffect(() => {
+    const root = store.getState().domNode; // the .react-flow wrapper
+    if (!root) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) return; // pinch-zoom → React Flow
+      const target = e.target as Element | null;
+      if (target?.closest('.nowheel')) return; // native scroll inside nodes
+      e.preventDefault();
+      const vp = getViewport();
+      // Subtract deltas: content follows the gesture, in screen space (so the
+      // feel is identical regardless of zoom level).
+      setViewport({ x: vp.x - e.deltaX, y: vp.y - e.deltaY, zoom: vp.zoom });
+    };
+
+    root.addEventListener('wheel', onWheel, { passive: false });
+    return () => root.removeEventListener('wheel', onWheel);
+  }, [store, getViewport, setViewport]);
 }
 
 /** Glides the viewport to the node the store asks to focus (new branch / request). */
