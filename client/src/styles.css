@@ -17,6 +17,11 @@
   --field: rgba(255, 255, 255, 0.7);
   --mark: rgba(255, 211, 110, 0.55);
   --mark-ink: inherit;
+  --code-bg: #f4f5f7;
+  --code-border: rgba(9, 30, 66, 0.14);
+  --gutter-bg: #ebecf0;
+  --gutter-ink: #8993a4;
+  --inline-bg: #f1f2f4;
   --edge: #1d6fe0;
   --user-bubble: #1d6fe0;
   --user-ink: #ffffff;
@@ -49,6 +54,11 @@
   --field: rgba(0, 0, 0, 0.28);
   --mark: rgba(255, 211, 110, 0.22);
   --mark-ink: #ffe2a0;
+  --code-bg: rgba(255, 255, 255, 0.05);
+  --code-border: rgba(255, 255, 255, 0.12);
+  --gutter-bg: rgba(255, 255, 255, 0.04);
+  --gutter-ink: #7a8190;
+  --inline-bg: rgba(255, 255, 255, 0.11);
   --edge: #4d9bff;
   --user-bubble: #1d6fe0;
   --user-ink: #ffffff;
@@ -401,27 +411,90 @@ input {
 }
 
 /* ============================================================
-   Reading typography (serif, font-scale aware)
+   Reading typography — Confluence-style (sans, generous spacing,
+   line-numbered code blocks). Font-scale aware.
    ============================================================ */
-.markdown-body { font-family: var(--font-read); }
-.doc-node .markdown-body { font-size: calc(20px * var(--reading-scale)); line-height: 1.7; }
-.doc-node .markdown-body h1 { font-size: 2em; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin: 0.4em 0 0.6em; }
-.doc-node .markdown-body h2 { font-size: 1.5em; font-weight: 600; line-height: 1.2; margin: 1em 0 0.4em; }
-.doc-node .markdown-body p { margin: 0 0 0.9em; }
-.markdown-body pre {
-  background: var(--field);
-  padding: 14px;
-  border-radius: var(--radius-sm);
-  overflow-x: auto;
-  font-size: 0.82em;
+.markdown-body { font-family: var(--font-ui); color: var(--ink); }
+.markdown-body > :first-child { margin-top: 0; }
+.markdown-body > :last-child { margin-bottom: 0; }
+
+.doc-node .markdown-body { font-size: calc(16px * var(--reading-scale)); line-height: 1.71; }
+.doc-node .markdown-body h1 { font-size: 1.9em; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; margin: 1.4em 0 0.5em; }
+.doc-node .markdown-body h2 { font-size: 1.4em; font-weight: 600; line-height: 1.25; margin: 1.6em 0 0.5em; }
+.doc-node .markdown-body h3 { font-size: 1.12em; font-weight: 600; line-height: 1.3; margin: 1.5em 0 0.4em; }
+.markdown-body h4, .markdown-body h5 { font-weight: 600; margin: 1.3em 0 0.3em; }
+.markdown-body p { margin: 0 0 1.1em; }
+.markdown-body ul, .markdown-body ol { margin: 0 0 1.1em; padding-left: 1.6em; }
+.markdown-body li { margin: 0.35em 0; }
+.markdown-body li > ul, .markdown-body li > ol { margin: 0.35em 0; }
+.markdown-body blockquote { margin: 0 0 1.1em; padding: 2px 0 2px 16px; border-left: 3px solid var(--border); color: var(--soft); }
+.markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 1.6em 0; }
+.markdown-body a { color: var(--accent); text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+.markdown-body table { border-collapse: collapse; margin: 0 0 1.1em; font-size: 0.95em; }
+.markdown-body th, .markdown-body td { border: 1px solid var(--code-border); padding: 7px 12px; text-align: left; }
+.markdown-body th { background: var(--gutter-bg); font-weight: 600; }
+
+/* inline code — Confluence pill */
+.markdown-body .cf-inline {
+  font-family: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--inline-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
 }
-.markdown-body code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.9em; }
-.markdown-body blockquote { margin: 0; padding-left: 16px; border-left: 3px solid var(--border); color: var(--soft); }
+
+/* fenced code block — light panel with a line-number gutter */
+.markdown-body .cf-codeblock {
+  margin: 0 0 1.1em;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cf-pre {
+  margin: 0;
+  padding: 12px 0;
+  overflow-x: auto;
+  counter-reset: cfline;
+}
+.cf-pre code {
+  display: block;
+  font-family: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, monospace;
+  font-size: calc(13.5px * var(--reading-scale));
+  line-height: 1.55;
+}
+.cf-line {
+  counter-increment: cfline;
+  display: block;
+  position: relative;
+  padding: 0 18px 0 56px;
+  white-space: pre;
+}
+.cf-line::before {
+  content: counter(cfline);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 100%;
+  box-sizing: border-box;
+  padding-right: 10px;
+  text-align: right;
+  color: var(--gutter-ink);
+  background: var(--gutter-bg);
+  border-right: 1px solid var(--code-border);
+  user-select: none;
+}
+
+/* highlights */
 .markdown-body mark {
   background: var(--mark);
   color: var(--mark-ink);
-  border-radius: 5px;
-  padding: 0 3px;
+  border-radius: 4px;
+  padding: 0 2px;
   cursor: pointer;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
