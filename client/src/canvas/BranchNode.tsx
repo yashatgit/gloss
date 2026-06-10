@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { formatCost, type BranchNode } from '@reader/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import { branchCost } from '../state/cost';
@@ -18,14 +18,20 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
   );
   const streamingText = useCanvasStore((s) => s.streaming[id] ?? null);
   const error = useCanvasStore((s) => s.errors[id]);
+  const isCollapsed = useCanvasStore((s) => !!s.collapsed[id]);
+  const isFlashing = useCanvasStore((s) => s.flashNodeId === id);
   const sendMessage = useCanvasStore((s) => s.sendMessage);
+  const regenerate = useCanvasStore((s) => s.regenerate);
   const abortMessage = useCanvasStore((s) => s.abortMessage);
   const deleteBranch = useCanvasStore((s) => s.deleteBranch);
+  const toggleCollapsed = useCanvasStore((s) => s.toggleCollapsed);
+  const flash = useCanvasStore((s) => s.flash);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchored = useAnchoredBranches(id);
   const focusBranch = useFocusBranch();
+  const { fitView } = useReactFlow();
 
   const highlightsFor = useCallback(
     (messageId: string) =>
@@ -33,12 +39,29 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
     [anchored],
   );
 
+  // Navigate to where this branch was anchored, and pulse the source span.
+  const focusSource = useCallback(() => {
+    if (!branch) return;
+    void fitView({ nodes: [{ id: branch.parentNodeId }], duration: 350, maxZoom: 1, padding: 0.3 });
+    flash(branch.parentNodeId);
+    setTimeout(() => {
+      const mark = document.querySelector(`mark[data-branch-id="${CSS.escape(id)}"]`);
+      if (mark) {
+        mark.classList.add('mark-flash');
+        setTimeout(() => mark.classList.remove('mark-flash'), 1100);
+      }
+    }, 380);
+  }, [branch, fitView, flash, id]);
+
   if (!branch) return null;
   const isStreaming = streamingText !== null;
   const cost = branchCost(branch);
 
   return (
-    <div ref={containerRef} className="branch-node">
+    <div
+      ref={containerRef}
+      className={`branch-node${isCollapsed ? ' is-collapsed' : ''}${isFlashing ? ' is-flashing' : ''}`}
+    >
       <Handle
         type="target"
         position={Position.Left}
@@ -48,46 +71,77 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
       />
       <div className="node-drag-handle node-header">
         <span className="node-kind">branch</span>
-        <span className="node-title" title={branch.anchor.quote}>
-          “{truncate(branch.anchor.quote, 40)}”
-        </span>
+        <button
+          className="node-title node-title-btn"
+          title={`Go to source: “${branch.anchor.quote}”`}
+          onClick={focusSource}
+        >
+          “{truncate(branch.anchor.quote, 38)}”
+        </button>
         {cost > 0 && (
           <span className="branch-cost" title="Estimated cost of this branch">
             {formatCost(cost)}
           </span>
         )}
         <button
-          className="node-close"
+          className="node-icon-btn"
+          title={isCollapsed ? 'Expand' : 'Collapse'}
+          onClick={() => toggleCollapsed(id)}
+        >
+          {isCollapsed ? '▸' : '▾'}
+        </button>
+        <button
+          className="node-icon-btn"
           title="Delete branch (and its sub-branches)"
           onClick={() => void deleteBranch(id)}
         >
           ×
         </button>
       </div>
-      <Thread
-        nodeId={id}
-        messages={branch.messages}
-        streamingText={streamingText}
-        highlightsFor={highlightsFor}
-        onMarkClick={focusBranch}
-        scrollRef={scrollRef}
-      />
-      {error && <div className="error-bar nodrag">{error}</div>}
-      <Composer
-        disabled={isStreaming}
-        autoFocus={branch.messages.length === 0}
-        placeholder={
-          branch.messages.length === 0 ? 'Ask about this selection…' : 'Ask a follow-up…'
-        }
-        onSend={(text) => void sendMessage(id, text)}
-        onStop={() => abortMessage(id)}
-      />
+      {!isCollapsed && (
+        <>
+          <Thread
+            nodeId={id}
+            messages={branch.messages}
+            streamingText={streamingText}
+            highlightsFor={highlightsFor}
+            onMarkClick={focusBranch}
+            scrollRef={scrollRef}
+          />
+          {error && (
+            <div className="error-bar nodrag">
+              <span>{error}</span>
+              <button className="retry-btn" onClick={() => void regenerate(id)}>
+                Retry
+              </button>
+            </div>
+          )}
+          {!error && !isStreaming && branch.messages.at(-1)?.role === 'assistant' && (
+            <button
+              className="regenerate-btn nodrag"
+              title="Regenerate the last reply"
+              onClick={() => void regenerate(id)}
+            >
+              ↻ Regenerate
+            </button>
+          )}
+          <Composer
+            disabled={isStreaming}
+            autoFocus={branch.messages.length === 0}
+            placeholder={
+              branch.messages.length === 0 ? 'Ask about this selection…' : 'Ask a follow-up…'
+            }
+            onSend={(text) => void sendMessage(id, text)}
+            onStop={() => abortMessage(id)}
+          />
+        </>
+      )}
       <AnchorHandles
         nodeId={id}
         containerRef={containerRef}
         scrollRef={scrollRef}
-        branchIds={anchored.map((b) => b.id)}
-        version={anchored.length + branch.messages.length}
+        branchIds={isCollapsed ? [] : anchored.map((b) => b.id)}
+        version={anchored.length + branch.messages.length + (isCollapsed ? 1 : 0)}
       />
     </div>
   );

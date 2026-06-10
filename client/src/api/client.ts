@@ -106,6 +106,37 @@ export function sendMessage(
   );
 }
 
+export function regenerate(
+  branchId: string,
+  model: string,
+  handlers: ChatHandlers,
+  signal?: AbortSignal,
+): Promise<void> {
+  return postSSE(
+    `${BASE}/branches/${branchId}/regenerate`,
+    { model },
+    (event, data) => {
+      switch (event) {
+        case 'start':
+          handlers.onStart?.((data as { messageId: string }).messageId);
+          break;
+        case 'delta':
+          handlers.onDelta((data as { text: string }).text);
+          break;
+        case 'done': {
+          const d = data as { message: ChatMessage; usage: Usage };
+          handlers.onDone(d.message, d.usage);
+          break;
+        }
+        case 'error':
+          handlers.onError(data as SSEError);
+          break;
+      }
+    },
+    signal,
+  );
+}
+
 export interface ImportHandlers {
   onDelta: (text: string) => void;
   onDone: (document: Doc, canvas: Canvas) => void;

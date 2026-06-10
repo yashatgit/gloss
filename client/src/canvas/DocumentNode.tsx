@@ -15,6 +15,7 @@ export const DocumentNodeView = memo(function DocumentNodeView({ id }: NodeProps
     const n = s.nodes.find((n) => n.id === id);
     return n?.kind === 'document' ? n.width : 720;
   });
+  const isFlashing = useCanvasStore((s) => s.flashNodeId === id);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchored = useAnchoredBranches(id);
@@ -23,7 +24,11 @@ export const DocumentNodeView = memo(function DocumentNodeView({ id }: NodeProps
   if (!doc) return null;
 
   return (
-    <div ref={containerRef} className="doc-node" style={{ width }}>
+    <div
+      ref={containerRef}
+      className={`doc-node${isFlashing ? ' is-flashing' : ''}`}
+      style={{ width }}
+    >
       <div className="node-drag-handle node-header">
         <span className="node-kind">document</span>
         <span className="node-title">{doc.title}</span>

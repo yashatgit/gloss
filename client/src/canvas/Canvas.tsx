@@ -3,9 +3,11 @@ import {
   Background,
   Controls,
   MiniMap,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   useNodesState,
+  useReactFlow,
   type Edge,
   type Node,
 } from '@xyflow/react';
@@ -101,7 +103,32 @@ function CanvasInner() {
         <Background gap={28} />
         <Controls showInteractive={false} />
         <MiniMap pannable zoomable />
+        <CanvasPanel />
       </ReactFlow>
     </div>
+  );
+}
+
+function CanvasPanel() {
+  const tidy = useCanvasStore((s) => s.tidy);
+  const docNodeId = useCanvasStore((s) => s.nodes.find((n) => n.kind === 'document')?.id);
+  const flash = useCanvasStore((s) => s.flash);
+  const { fitView } = useReactFlow();
+
+  const focusDocument = () => {
+    if (!docNodeId) return;
+    void fitView({ nodes: [{ id: docNodeId }], duration: 350, maxZoom: 1, padding: 0.12 });
+    flash(docNodeId);
+  };
+
+  return (
+    <Panel position="top-left" className="canvas-panel">
+      <button onClick={focusDocument} title="Center and zoom to the document">
+        Focus document
+      </button>
+      <button onClick={tidy} title="Auto-arrange branches by depth">
+        Tidy layout
+      </button>
+    </Panel>
   );
 }

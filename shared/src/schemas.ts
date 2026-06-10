@@ -37,6 +37,10 @@ export const sendMessageSchema = z.object({
   model: modelId,
 });
 
+export const regenerateSchema = z.object({
+  model: modelId,
+});
+
 export const patchPositionSchema = z.object({
   docId: z.string(),
   x: z.number(),

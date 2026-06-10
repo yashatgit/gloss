@@ -12,6 +12,7 @@ import {
   type Provider,
 } from '@reader/shared';
 import * as api from '../api/client';
+import { tidyPositions } from '../canvas/layout';
 
 const MODEL_STORAGE_KEY = 'reader.selectedModel';
 
@@ -30,6 +31,14 @@ interface CanvasState {
   streaming: Record<string, string>;
   /** branchId → last error message. */
   errors: Record<string, string>;
+  /** Branch nodes collapsed to just their header (client-only UI state). */
+  collapsed: Record<string, boolean>;
+  /** Node id to briefly pulse (e.g. a branch's source span after focus). */
+  flashNodeId: string | null;
+
+  toggleCollapsed(branchId: string): void;
+  tidy(): void;
+  flash(nodeId: string): void;
 
   /** Model selection (global app setting, persisted to localStorage). */
   selectedModel: string;
@@ -53,12 +62,92 @@ interface CanvasState {
     firstMessage?: string,
   ): Promise<string | null>;
   sendMessage(branchId: string, text: string): Promise<void>;
+  regenerate(branchId: string): Promise<void>;
   abortMessage(branchId: string): void;
   deleteBranch(branchId: string): Promise<void>;
 }
 
 // Non-reactive: components key off `streaming` for UI state.
 const aborters = new Map<string, AbortController>();
+
+type SetFn = (fn: (s: CanvasState) => Partial<CanvasState>) => void;
+type GetFn = () => CanvasState;
+
+/** Shared streaming consumer for sendMessage + regenerate. */
+async function consumeStream(
+  set: SetFn,
+  get: GetFn,
+  branchId: string,
+  invoke: (handlers: api.ChatHandlers, signal: AbortSignal) => Promise<void>,
+): Promise<void> {
+  const controller = new AbortController();
+  aborters.set(branchId, controller);
+  set((s) => {
+    const errors = { ...s.errors };
+    delete errors[branchId];
+    return { streaming: { ...s.streaming, [branchId]: '' }, errors };
+  });
+
+  const clearStreaming = (s: CanvasState) => {
+    const streaming = { ...s.streaming };
+    delete streaming[branchId];
+    return streaming;
+  };
+
+  try {
+    await invoke(
+      {
+        onDelta: (t) =>
+          set((s) => ({
+            streaming: { ...s.streaming, [branchId]: (s.streaming[branchId] ?? '') + t },
+          })),
+        onDone: (message) =>
+          set((s) => ({
+            nodes: updateBranch(s.nodes, branchId, (b) => ({
+              ...b,
+              messages: [...b.messages, message],
+            })),
+            streaming: clearStreaming(s),
+          })),
+        onError: (e) =>
+          set((s) => ({
+            streaming: clearStreaming(s),
+            errors: { ...s.errors, [branchId]: `${e.type} (${e.status}): ${e.message}` },
+          })),
+      },
+      controller.signal,
+    );
+  } catch (err) {
+    const aborted = err instanceof DOMException && err.name === 'AbortError';
+    set((s) => {
+      const partial = s.streaming[branchId];
+      return {
+        streaming: clearStreaming(s),
+        // Keep what already streamed (the server persists its copy too).
+        nodes:
+          aborted && partial
+            ? updateBranch(s.nodes, branchId, (b) => ({
+                ...b,
+                messages: [
+                  ...b.messages,
+                  {
+                    id: `partial-${Date.now()}`,
+                    role: 'assistant' as const,
+                    text: partial,
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              }))
+            : s.nodes,
+        errors: aborted
+          ? s.errors
+          : { ...s.errors, [branchId]: err instanceof Error ? err.message : String(err) },
+      };
+    });
+  } finally {
+    aborters.delete(branchId);
+  }
+}
 
 function updateBranch(
   nodes: CanvasNode[],
@@ -73,6 +162,30 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   nodes: [],
   streaming: {},
   errors: {},
+  collapsed: {},
+  flashNodeId: null,
+
+  toggleCollapsed: (branchId) =>
+    set((s) => ({ collapsed: { ...s.collapsed, [branchId]: !s.collapsed[branchId] } })),
+
+  tidy: () => {
+    const { doc, nodes, collapsed } = get();
+    if (!doc) return;
+    const positions = tidyPositions(nodes, collapsed);
+    set({
+      nodes: nodes.map((n) => (positions[n.id] ? { ...n, position: positions[n.id]! } : n)),
+    });
+    for (const [id, pos] of Object.entries(positions)) {
+      void api.patchPosition(id, doc.id, pos.x, pos.y);
+    }
+  },
+
+  flash: (nodeId) => {
+    set({ flashNodeId: nodeId });
+    setTimeout(() => {
+      if (get().flashNodeId === nodeId) set({ flashNodeId: null });
+    }, 1200);
+  },
 
   selectedModel: loadStoredModel(),
   models: [],
@@ -99,14 +212,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
   },
 
-  setCanvas: (doc, nodes) => set({ doc, nodes, streaming: {}, errors: {} }),
+  setCanvas: (doc, nodes) => set({ doc, nodes, streaming: {}, errors: {}, collapsed: {}, flashNodeId: null }),
 
   loadCanvas: async (docId) => {
     const { document, nodes } = await api.getCanvas(docId);
-    set({ doc: document, nodes, streaming: {}, errors: {} });
+    set({ doc: document, nodes, streaming: {}, errors: {}, collapsed: {}, flashNodeId: null });
   },
 
-  reset: () => set({ doc: null, nodes: [], streaming: {}, errors: {} }),
+  reset: () => set({ doc: null, nodes: [], streaming: {}, errors: {}, collapsed: {}, flashNodeId: null }),
 
   moveNodeLocal: (nodeId, position) =>
     set((s) => ({
@@ -143,92 +256,35 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   sendMessage: async (branchId, text) => {
-    const controller = new AbortController();
-    aborters.set(branchId, controller);
     const userMsg: ChatMessage = {
       id: `tmp-${Date.now()}`,
       role: 'user',
       text,
       createdAt: new Date().toISOString(),
     };
-    set((s) => {
-      const errors = { ...s.errors };
-      delete errors[branchId];
-      return {
-        nodes: updateBranch(s.nodes, branchId, (b) => ({
-          ...b,
-          messages: [...b.messages, userMsg],
-        })),
-        streaming: { ...s.streaming, [branchId]: '' },
-        errors,
-      };
-    });
+    set((s) => ({
+      nodes: updateBranch(s.nodes, branchId, (b) => ({
+        ...b,
+        messages: [...b.messages, userMsg],
+      })),
+    }));
+    await consumeStream(set, get, branchId, (handlers, signal) =>
+      api.sendMessage(branchId, text, get().selectedModel, handlers, signal),
+    );
+  },
 
-    const clearStreaming = (s: CanvasState) => {
-      const streaming = { ...s.streaming };
-      delete streaming[branchId];
-      return streaming;
-    };
-
-    try {
-      await api.sendMessage(
-        branchId,
-        text,
-        get().selectedModel,
-        {
-          onDelta: (t) =>
-            set((s) => ({
-              streaming: { ...s.streaming, [branchId]: (s.streaming[branchId] ?? '') + t },
-            })),
-          onDone: (message) =>
-            set((s) => ({
-              nodes: updateBranch(s.nodes, branchId, (b) => ({
-                ...b,
-                messages: [...b.messages, message],
-              })),
-              streaming: clearStreaming(s),
-            })),
-          onError: (e) =>
-            set((s) => ({
-              streaming: clearStreaming(s),
-              errors: { ...s.errors, [branchId]: `${e.type} (${e.status}): ${e.message}` },
-            })),
-        },
-        controller.signal,
-      );
-    } catch (err) {
-      const aborted = err instanceof DOMException && err.name === 'AbortError';
-      set((s) => {
-        const partial = s.streaming[branchId];
-        return {
-          streaming: clearStreaming(s),
-          // Keep what already streamed (the server persists its copy too).
-          nodes:
-            aborted && partial
-              ? updateBranch(s.nodes, branchId, (b) => ({
-                  ...b,
-                  messages: [
-                    ...b.messages,
-                    {
-                      id: `partial-${Date.now()}`,
-                      role: 'assistant',
-                      text: partial,
-                      createdAt: new Date().toISOString(),
-                    },
-                  ],
-                }))
-              : s.nodes,
-          errors: aborted
-            ? s.errors
-            : {
-                ...s.errors,
-                [branchId]: err instanceof Error ? err.message : String(err),
-              },
-        };
-      });
-    } finally {
-      aborters.delete(branchId);
-    }
+  regenerate: async (branchId) => {
+    // Optimistically drop the trailing assistant turn (server does the same).
+    set((s) => ({
+      nodes: updateBranch(s.nodes, branchId, (b) => {
+        const messages = b.messages.slice();
+        if (messages.at(-1)?.role === 'assistant') messages.pop();
+        return { ...b, messages };
+      }),
+    }));
+    await consumeStream(set, get, branchId, (handlers, signal) =>
+      api.regenerate(branchId, get().selectedModel, handlers, signal),
+    );
   },
 
   abortMessage: (branchId) => aborters.get(branchId)?.abort(),

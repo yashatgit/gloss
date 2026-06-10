@@ -61,11 +61,19 @@ export function Thread({
           )}
         </div>
       ))}
-      {streamingText !== null && (
-        <div className="msg msg-assistant msg-streaming">
-          <MarkdownView markdown={streamingText || '…'} nodeId={nodeId} />
-        </div>
-      )}
+      {streamingText !== null &&
+        (streamingText === '' ? (
+          <div className="msg msg-assistant thinking-indicator" aria-label="Thinking">
+            <span className="dot" />
+            <span className="dot" />
+            <span className="dot" />
+          </div>
+        ) : (
+          <div className="msg msg-assistant msg-streaming">
+            <MarkdownView markdown={streamingText} nodeId={nodeId} />
+            <span className="stream-cursor" />
+          </div>
+        ))}
     </div>
   );
 }
