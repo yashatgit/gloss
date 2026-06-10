@@ -1,13 +1,27 @@
 import { create } from 'zustand';
-import type {
-  Anchor,
-  BranchNode,
-  CanvasNode,
-  ChatMessage,
-  Doc,
-  Position,
+import {
+  DEFAULT_MODEL,
+  getModel,
+  type Anchor,
+  type BranchNode,
+  type CanvasNode,
+  type ChatMessage,
+  type Doc,
+  type ModelInfo,
+  type Position,
+  type Provider,
 } from '@reader/shared';
 import * as api from '../api/client';
+
+const MODEL_STORAGE_KEY = 'reader.selectedModel';
+
+function loadStoredModel(): string {
+  try {
+    return localStorage.getItem(MODEL_STORAGE_KEY) ?? DEFAULT_MODEL;
+  } catch {
+    return DEFAULT_MODEL;
+  }
+}
 
 interface CanvasState {
   doc: Doc | null;
@@ -16,6 +30,13 @@ interface CanvasState {
   streaming: Record<string, string>;
   /** branchId → last error message. */
   errors: Record<string, string>;
+
+  /** Model selection (global app setting, persisted to localStorage). */
+  selectedModel: string;
+  models: ModelInfo[];
+  configuredProviders: Provider[];
+  setModel(id: string): void;
+  loadConfig(): Promise<void>;
 
   setCanvas(doc: Doc, nodes: CanvasNode[]): void;
   loadCanvas(docId: string): Promise<void>;
@@ -52,6 +73,31 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   nodes: [],
   streaming: {},
   errors: {},
+
+  selectedModel: loadStoredModel(),
+  models: [],
+  configuredProviders: [],
+
+  setModel: (id) => {
+    try {
+      localStorage.setItem(MODEL_STORAGE_KEY, id);
+    } catch {
+      // ignore storage failures
+    }
+    set({ selectedModel: id });
+  },
+
+  loadConfig: async () => {
+    const { providers, models } = await api.getConfig();
+    set({ configuredProviders: providers, models });
+    // If the persisted model's provider has no key, fall back to the first
+    // model of a configured provider so requests don't fail out of the gate.
+    const current = getModel(get().selectedModel);
+    if (!current || !providers.includes(current.provider)) {
+      const usable = models.find((m) => providers.includes(m.provider));
+      if (usable) get().setModel(usable.id);
+    }
+  },
 
   setCanvas: (doc, nodes) => set({ doc, nodes, streaming: {}, errors: {} }),
 
@@ -128,6 +174,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       await api.sendMessage(
         branchId,
         text,
+        get().selectedModel,
         {
           onDelta: (t) =>
             set((s) => ({

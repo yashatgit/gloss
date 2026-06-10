@@ -3,7 +3,7 @@ import { streamSSE } from 'hono/streaming';
 import { nanoid } from 'nanoid';
 import { sendMessageSchema, type ChatMessage, type Usage } from '@reader/shared';
 import { store } from '../store/store';
-import { createBranchStream } from '../ai/branchChat';
+import { streamBranch } from '../ai/chat';
 import { toSSEError } from '../ai/errors';
 
 export const branchesRoute = new Hono();
@@ -30,37 +30,33 @@ branchesRoute.post('/:branchId/messages', async (c) => {
     });
 
     let buffer = '';
+    let usage: Usage | undefined;
     try {
-      const msgStream = createBranchStream(state, branch);
-      c.req.raw.signal.addEventListener('abort', () => msgStream.controller.abort());
+      const chunks = streamBranch(state, branch, body.model, c.req.raw.signal);
 
-      for await (const event of msgStream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          buffer += event.delta.text;
-          await stream.writeSSE({
-            event: 'delta',
-            data: JSON.stringify({ text: event.delta.text }),
-          });
+      for await (const chunk of chunks) {
+        if (chunk.type === 'delta') {
+          buffer += chunk.text;
+          await stream.writeSSE({ event: 'delta', data: JSON.stringify({ text: chunk.text }) });
+        } else {
+          buffer = chunk.text;
+          usage = chunk.usage;
         }
       }
 
-      const final = await msgStream.finalMessage();
-      const text = final.content
-        .filter((b) => b.type === 'text')
-        .map((b) => b.text)
-        .join('');
-      const usage: Usage = {
-        input_tokens: final.usage.input_tokens,
-        output_tokens: final.usage.output_tokens,
-        cache_read_input_tokens: final.usage.cache_read_input_tokens ?? 0,
-        cache_creation_input_tokens: final.usage.cache_creation_input_tokens ?? 0,
+      const finalUsage: Usage = usage ?? {
+        input_tokens: 0,
+        output_tokens: 0,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
       };
       const message: ChatMessage = {
         id: assistantId,
         role: 'assistant',
-        text,
+        text: buffer,
         createdAt: new Date().toISOString(),
-        usage,
+        usage: finalUsage,
+        model: body.model,
       };
       // The branch may have been deleted while we were streaming — persisting
       // then would resurrect a zombie branch in the JSON.
@@ -69,10 +65,10 @@ branchesRoute.post('/:branchId/messages', async (c) => {
         await store.flushNow(state.document.id);
       }
       console.log(
-        `[chat] branch=${branch.id} in=${usage.input_tokens} out=${usage.output_tokens} ` +
-          `cache_read=${usage.cache_read_input_tokens} cache_write=${usage.cache_creation_input_tokens}`,
+        `[chat] branch=${branch.id} model=${body.model} in=${finalUsage.input_tokens} ` +
+          `out=${finalUsage.output_tokens} cache_read=${finalUsage.cache_read_input_tokens}`,
       );
-      await stream.writeSSE({ event: 'done', data: JSON.stringify({ message, usage }) });
+      await stream.writeSSE({ event: 'done', data: JSON.stringify({ message, usage: finalUsage }) });
     } catch (err) {
       // Keep whatever streamed before the failure/abort so the user doesn't lose it.
       if (buffer && store.getBranch(branch.id)) {
@@ -81,6 +77,7 @@ branchesRoute.post('/:branchId/messages', async (c) => {
           role: 'assistant',
           text: buffer,
           createdAt: new Date().toISOString(),
+          model: body.model,
         });
         await store.flushNow(state.document.id);
       }

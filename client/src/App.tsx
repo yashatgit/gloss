@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react';
-import type { DocumentSummary } from '@reader/shared';
+import { formatCost, type DocumentSummary } from '@reader/shared';
 import * as api from './api/client';
 import { encodeImage } from './api/image';
 import { useCanvasStore } from './state/canvasStore';
+import { docCost } from './state/cost';
 import { CanvasView } from './canvas/Canvas';
+import { ModelPicker } from './components/ModelPicker';
 
 export default function App() {
   const hasDoc = useCanvasStore((s) => s.doc !== null);
+  const loadConfig = useCanvasStore((s) => s.loadConfig);
+
+  useEffect(() => {
+    void loadConfig().catch(() => undefined);
+  }, [loadConfig]);
+
   return hasDoc ? <CanvasScreen /> : <HomePage />;
 }
 
@@ -14,14 +22,20 @@ function CanvasScreen() {
   const title = useCanvasStore((s) => s.doc?.title ?? '');
   const reset = useCanvasStore((s) => s.reset);
   const globalError = useCanvasStore((s) => s.errors.global);
+  const total = useCanvasStore((s) => docCost(s.nodes));
   return (
     <div className="canvas-screen">
       <div className="top-bar">
         <button onClick={reset}>← Documents</button>
         <strong>{title}</strong>
-        <span className="top-bar-hint">
-          Select text in any node to branch off · drag nodes by their header
+        <span
+          className="doc-cost"
+          title="Estimated total spent across all branches in this document"
+        >
+          {formatCost(total)} <span className="doc-cost-label">this doc</span>
         </span>
+        <span className="top-bar-spacer" />
+        <ModelPicker />
       </div>
       {globalError && <div className="error-bar">{globalError}</div>}
       <CanvasView />
@@ -65,7 +79,7 @@ function HomePage() {
     setImportPreview('');
     try {
       const { mediaType, data } = await encodeImage(file);
-      await api.importImage(mediaType, data, {
+      await api.importImage(mediaType, data, useCanvasStore.getState().selectedModel, {
         onDelta: (t) => setImportPreview((s) => (s ?? '') + t),
         onDone: (document, canvas) => {
           setImportPreview(null);
@@ -101,6 +115,9 @@ function HomePage() {
         Paste long-form text, markdown, or a screenshot — then select anything
         while reading to branch off an AI conversation about it.
       </p>
+      <label className="model-row">
+        Model: <ModelPicker />
+      </label>
       <textarea
         value={pasteText}
         onChange={(e) => setPasteText(e.target.value)}

@@ -42,6 +42,9 @@ export interface ChatMessage {
   text: string;
   createdAt: string;
   usage?: Usage;
+  /** Model that produced this message — used to attribute cost accurately
+   * even when the document's selected model changes between turns. */
+  model?: string;
 }
 
 export interface Position {

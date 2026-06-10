@@ -6,6 +6,8 @@ import type {
   ChatMessage,
   Doc,
   DocumentSummary,
+  ModelInfo,
+  Provider,
   SSEError,
   Usage,
 } from '@reader/shared';
@@ -34,6 +36,12 @@ export function createDocument(source: 'text' | 'markdown', text: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ source, text }),
   }).then((r) => json<{ document: Doc; canvas: Canvas }>(r));
+}
+
+export function getConfig() {
+  return fetch(`${BASE}/config`).then((r) =>
+    json<{ providers: Provider[]; models: ModelInfo[] }>(r),
+  );
 }
 
 export function listDocuments() {
@@ -69,12 +77,13 @@ export interface ChatHandlers {
 export function sendMessage(
   branchId: string,
   text: string,
+  model: string,
   handlers: ChatHandlers,
   signal?: AbortSignal,
 ): Promise<void> {
   return postSSE(
     `${BASE}/branches/${branchId}/messages`,
-    { text },
+    { text, model },
     (event, data) => {
       switch (event) {
         case 'start':
@@ -106,12 +115,13 @@ export interface ImportHandlers {
 export function importImage(
   media_type: string,
   data: string,
+  model: string,
   handlers: ImportHandlers,
   signal?: AbortSignal,
 ): Promise<void> {
   return postSSE(
     `${BASE}/documents/import-image`,
-    { media_type, data },
+    { media_type, data, model },
     (event, payload) => {
       switch (event) {
         case 'delta':

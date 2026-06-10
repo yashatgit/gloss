@@ -1,9 +1,22 @@
-import Anthropic from '@anthropic-ai/sdk';
+import type { Provider } from '@reader/shared';
+import { anthropicProvider, isConfigured as anthropicConfigured } from './providers/anthropic';
+import { openaiProvider, isConfigured as openaiConfigured } from './providers/openai';
+import type { ChatProvider } from './providers/types';
 
-// Reads ANTHROPIC_API_KEY from the environment (loaded in index.ts).
-export const anthropic = new Anthropic();
+const PROVIDERS: Record<Provider, { client: ChatProvider; configured: () => boolean }> = {
+  anthropic: { client: anthropicProvider, configured: anthropicConfigured },
+  openai: { client: openaiProvider, configured: openaiConfigured },
+};
 
-// Sonnet 4.6: best price/quality balance for grounded explanations —
-// $3/$15 per MTok (vs Opus 4.8's $5/$25), 1M context, vision-capable,
-// and a lower prompt-cache minimum (2048 tokens) so short docs cache too.
-export const MODEL = 'claude-sonnet-4-6';
+export function providerClient(provider: Provider): ChatProvider {
+  return PROVIDERS[provider].client;
+}
+
+/** Providers whose API key is present in the environment. */
+export function configuredProviders(): Provider[] {
+  return (Object.keys(PROVIDERS) as Provider[]).filter((p) => PROVIDERS[p].configured());
+}
+
+export function isProviderConfigured(provider: Provider): boolean {
+  return PROVIDERS[provider].configured();
+}

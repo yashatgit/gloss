@@ -14,7 +14,7 @@ import {
 } from '@reader/shared';
 import { store } from '../store/store';
 import { assetsDir, docDir } from '../store/paths';
-import { createExtractionStream } from '../ai/extractImage';
+import { streamTranscription } from '../ai/chat';
 import { toSSEError } from '../ai/errors';
 
 export const documentsRoute = new Hono();
@@ -58,18 +58,20 @@ documentsRoute.post('/import-image', async (c) => {
   return streamSSE(c, async (stream) => {
     let markdown = '';
     try {
-      const msgStream = createExtractionStream(body);
-      c.req.raw.signal.addEventListener('abort', () => msgStream.controller.abort());
-      for await (const event of msgStream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          markdown += event.delta.text;
-          await stream.writeSSE({
-            event: 'delta',
-            data: JSON.stringify({ text: event.delta.text }),
-          });
+      const chunks = streamTranscription(
+        body.model,
+        body.media_type,
+        body.data,
+        c.req.raw.signal,
+      );
+      for await (const chunk of chunks) {
+        if (chunk.type === 'delta') {
+          markdown += chunk.text;
+          await stream.writeSSE({ event: 'delta', data: JSON.stringify({ text: chunk.text }) });
+        } else {
+          markdown = chunk.text;
         }
       }
-      await msgStream.finalMessage();
 
       const docId = nanoid(10);
       const ext = body.media_type.split('/')[1];

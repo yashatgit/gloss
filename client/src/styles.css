@@ -114,10 +114,43 @@ textarea {
   background: var(--panel);
   z-index: 5;
 }
-.top-bar-hint {
-  margin-left: auto;
+.top-bar-spacer {
+  flex: 1;
+}
+.doc-cost {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.doc-cost-label {
+  font-weight: 400;
   color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+.model-picker {
+  font: inherit;
   font-size: 0.8125rem;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  max-width: 220px;
+}
+.model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.branch-cost {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.6875rem;
+  color: var(--accent);
+  flex-shrink: 0;
 }
 .canvas-root {
   flex: 1;

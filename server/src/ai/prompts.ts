@@ -1,6 +1,6 @@
-import type Anthropic from '@anthropic-ai/sdk';
 import type { Anchor, BranchNode, CanvasNode, Doc } from '@reader/shared';
 import type { DocState } from '../store/store';
+import type { NeutralMessage } from './providers/types';
 
 /**
  * Cache correctness lives in this file. The system prefix (instructions +
@@ -13,15 +13,9 @@ export const SYSTEM_INSTRUCTIONS = `You are a reading companion embedded in a do
 
 Ground your answers in the document: account for what comes before and after the selection, and quote the document when it helps. Answer in the context of the selected passage unless the user asks to go broader. Be clear and concise — the user is mid-reading and wants understanding, not an essay. Use markdown formatting.`;
 
-export function buildSystemBlocks(doc: Doc): Anthropic.TextBlockParam[] {
-  return [
-    { type: 'text', text: SYSTEM_INSTRUCTIONS },
-    {
-      type: 'text',
-      text: `<document title=${JSON.stringify(doc.title)}>\n${doc.markdown}\n</document>`,
-      cache_control: { type: 'ephemeral' },
-    },
-  ];
+/** The document wrapped for the cacheable system prefix (provider-neutral). */
+export function documentBlock(doc: Doc): string {
+  return `<document title=${JSON.stringify(doc.title)}>\n${doc.markdown}\n</document>`;
 }
 
 function findNode(state: DocState, nodeId: string): CanvasNode | undefined {
@@ -128,10 +122,7 @@ ${breadcrumb}<selection>${branch.anchor.quote}</selection>
 ${userText}`;
 }
 
-export function toMessageParams(
-  state: DocState,
-  branch: BranchNode,
-): Anthropic.MessageParam[] {
+export function toNeutralMessages(state: DocState, branch: BranchNode): NeutralMessage[] {
   let firstUserSeen = false;
   return branch.messages.map((m) => {
     let text = m.text;

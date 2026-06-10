@@ -1,7 +1,8 @@
 import { memo, useCallback, useRef } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import type { BranchNode } from '@reader/shared';
+import { formatCost, type BranchNode } from '@reader/shared';
 import { useCanvasStore } from '../state/canvasStore';
+import { branchCost } from '../state/cost';
 import { Thread } from '../chat/Thread';
 import { Composer } from '../chat/Composer';
 import { AnchorHandles } from './AnchorHandles';
@@ -34,6 +35,7 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
 
   if (!branch) return null;
   const isStreaming = streamingText !== null;
+  const cost = branchCost(branch);
 
   return (
     <div ref={containerRef} className="branch-node">
@@ -47,8 +49,13 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
       <div className="node-drag-handle node-header">
         <span className="node-kind">branch</span>
         <span className="node-title" title={branch.anchor.quote}>
-          “{truncate(branch.anchor.quote, 48)}”
+          “{truncate(branch.anchor.quote, 40)}”
         </span>
+        {cost > 0 && (
+          <span className="branch-cost" title="Estimated cost of this branch">
+            {formatCost(cost)}
+          </span>
+        )}
         <button
           className="node-close"
           title="Delete branch (and its sub-branches)"

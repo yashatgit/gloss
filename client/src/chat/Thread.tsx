@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, type RefObject } from 'react';
-import type { ChatMessage } from '@reader/shared';
+import { costOfUsage, formatCost, getModel, type ChatMessage } from '@reader/shared';
 import { MarkdownView } from '../reading/MarkdownView';
 import type { HighlightSpec } from '../reading/highlights';
 
@@ -50,10 +50,13 @@ export function Thread({
             <p>{m.text}</p>
           )}
           {m.usage && (
-            <div className="usage-badge" title="input → output tokens · prompt cache reads">
+            <div className="usage-badge" title="model · input → output tokens · prompt cache reads · est. cost">
+              {getModel(m.model ?? '')?.label ?? m.model ?? '?'} ·{' '}
               {m.usage.input_tokens}→{m.usage.output_tokens} tok
               {m.usage.cache_read_input_tokens > 0 &&
                 ` · ⚡${m.usage.cache_read_input_tokens} cached`}
+              {' · '}
+              {formatCost(costOfUsage(m.model, m.usage))}
             </div>
           )}
         </div>

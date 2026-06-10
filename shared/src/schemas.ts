@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { isKnownModel } from './models';
+
+const modelId = z.string().refine(isKnownModel, { message: 'unknown model' });
 
 export const createDocumentSchema = z.object({
   source: z.enum(['text', 'markdown']),
@@ -10,6 +13,7 @@ export const importImageSchema = z.object({
   // ~22MB decoded — the client downscales to well under this; the cap stops
   // a runaway body from exhausting server memory.
   data: z.string().min(1).max(30_000_000),
+  model: modelId,
 });
 
 export const anchorSchema = z.object({
@@ -30,6 +34,7 @@ export const createBranchSchema = z.object({
 
 export const sendMessageSchema = z.object({
   text: z.string().min(1).max(50_000),
+  model: modelId,
 });
 
 export const patchPositionSchema = z.object({
