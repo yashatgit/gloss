@@ -1,0 +1,11 @@
+{
+  "name": "reader",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "packageManager": "pnpm@11.5.2"
+}

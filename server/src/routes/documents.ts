@@ -1,0 +1,125 @@
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
+import { nanoid } from 'nanoid';
+import {
+  createDocumentSchema,
+  importImageSchema,
+  createBranchSchema,
+  type BranchNode,
+  type Canvas,
+  type Doc,
+  type DocumentNode,
+} from '@reader/shared';
+import { store } from '../store/store';
+import { assetsDir, docDir } from '../store/paths';
+import { createExtractionStream } from '../ai/extractImage';
+import { toSSEError } from '../ai/errors';
+
+export const documentsRoute = new Hono();
+
+function deriveTitle(markdown: string): string {
+  for (const line of markdown.split('\n')) {
+    const trimmed = line.replace(/^#+\s*/, '').trim();
+    if (trimmed) return trimmed.slice(0, 80);
+  }
+  return 'Untitled';
+}
+
+function makeDocumentNode(docId: string): DocumentNode {
+  return {
+    id: nanoid(10),
+    kind: 'document',
+    docId,
+    position: { x: 0, y: 0 },
+    width: 720,
+  };
+}
+
+documentsRoute.get('/', (c) => c.json({ documents: store.listDocuments() }));
+
+documentsRoute.post('/', async (c) => {
+  const body = createDocumentSchema.parse(await c.req.json());
+  const document: Doc = {
+    id: nanoid(10),
+    title: deriveTitle(body.text),
+    source: body.source,
+    markdown: body.text,
+    createdAt: new Date().toISOString(),
+  };
+  const canvas: Canvas = { nodes: [makeDocumentNode(document.id)] };
+  store.createDocument(document, canvas);
+  return c.json({ document, canvas }, 201);
+});
+
+documentsRoute.post('/import-image', async (c) => {
+  const body = importImageSchema.parse(await c.req.json());
+  return streamSSE(c, async (stream) => {
+    try {
+      const msgStream = createExtractionStream(body);
+      c.req.raw.signal.addEventListener('abort', () => msgStream.controller.abort());
+      let markdown = '';
+      for await (const event of msgStream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          markdown += event.delta.text;
+          await stream.writeSSE({
+            event: 'delta',
+            data: JSON.stringify({ text: event.delta.text }),
+          });
+        }
+      }
+      await msgStream.finalMessage();
+
+      const docId = nanoid(10);
+      const ext = body.media_type.split('/')[1];
+      const assetRel = path.join('assets', `original.${ext}`);
+      await fsp.mkdir(assetsDir(docId), { recursive: true });
+      await fsp.writeFile(
+        path.join(docDir(docId), assetRel),
+        Buffer.from(body.data, 'base64'),
+      );
+
+      const document: Doc = {
+        id: docId,
+        title: deriveTitle(markdown) || 'Pasted image',
+        source: 'image',
+        markdown,
+        originalImagePath: assetRel,
+        createdAt: new Date().toISOString(),
+      };
+      const canvas: Canvas = { nodes: [makeDocumentNode(docId)] };
+      store.createDocument(document, canvas);
+      await stream.writeSSE({
+        event: 'done',
+        data: JSON.stringify({ document, canvas }),
+      });
+    } catch (err) {
+      await stream.writeSSE({ event: 'error', data: JSON.stringify(toSSEError(err)) });
+    }
+  });
+});
+
+documentsRoute.post('/:docId/branches', async (c) => {
+  const docId = c.req.param('docId');
+  const body = createBranchSchema.parse(await c.req.json());
+  const state = store.getDoc(docId);
+  if (!state) return c.json({ error: 'document not found' }, 404);
+  const parent = state.canvas.nodes.find((n) => n.id === body.parentNodeId);
+  if (!parent) return c.json({ error: 'parent node not found' }, 404);
+
+  // Place to the right of the parent; client may reposition immediately.
+  const parentWidth = parent.kind === 'document' ? parent.width : 420;
+  const node: BranchNode = {
+    id: nanoid(10),
+    kind: 'branch',
+    docId,
+    position: { x: parent.position.x + parentWidth + 120, y: parent.position.y },
+    parentNodeId: body.parentNodeId,
+    anchor: body.anchor,
+    title: body.title,
+    messages: [],
+  };
+  store.addBranch(docId, node);
+  return c.json({ node }, 201);
+});
