@@ -15,8 +15,6 @@ import * as api from '../api/client';
 
 const MODEL_STORAGE_KEY = 'reader.selectedModel';
 
-export type CanvasMode = 'scroll' | 'zoom';
-
 function loadStoredModel(): string {
   try {
     return localStorage.getItem(MODEL_STORAGE_KEY) ?? DEFAULT_MODEL;
@@ -36,15 +34,12 @@ interface CanvasState {
   collapsed: Record<string, boolean>;
   /** Node id to briefly pulse (e.g. a branch's source span after focus). */
   flashNodeId: string | null;
-  /** Wheel behavior: 'scroll' pans the canvas (default), 'zoom' zooms it. */
-  canvasMode: CanvasMode;
   /** Node id the viewport should glide to (set on new request; cleared after). */
   focusTarget: string | null;
 
   toggleCollapsed(branchId: string): void;
   applyPositions(positions: Record<string, Position>): void;
   flash(nodeId: string): void;
-  toggleCanvasMode(): void;
   requestFocus(nodeId: string): void;
   clearFocus(): void;
 
@@ -173,14 +168,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   errors: {},
   collapsed: {},
   flashNodeId: null,
-  canvasMode: 'scroll',
   focusTarget: null,
 
   toggleCollapsed: (branchId) =>
     set((s) => ({ collapsed: { ...s.collapsed, [branchId]: !s.collapsed[branchId] } })),
-
-  toggleCanvasMode: () =>
-    set((s) => ({ canvasMode: s.canvasMode === 'scroll' ? 'zoom' : 'scroll' })),
 
   requestFocus: (nodeId) => set({ focusTarget: nodeId }),
   clearFocus: () => set({ focusTarget: null }),

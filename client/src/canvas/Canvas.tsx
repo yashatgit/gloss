@@ -40,7 +40,6 @@ export function CanvasView() {
 function CanvasInner() {
   const domainNodes = useCanvasStore((s) => s.nodes);
   const persistPosition = useCanvasStore((s) => s.persistPosition);
-  const canvasMode = useCanvasStore((s) => s.canvasMode);
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
 
   // Sync domain → React Flow, preserving RF's own node objects (drag state,
@@ -101,11 +100,10 @@ function CanvasInner() {
         maxZoom={2}
         nodesConnectable={false}
         deleteKeyCode={null}
-        // Scroll mode (default): wheel/trackpad pans the canvas like a page.
-        // Zoom mode: wheel zooms. Pinch-to-zoom works in both.
-        panOnScroll={canvasMode === 'scroll'}
+        // Wheel/trackpad pans the canvas like a page; trackpad pinch zooms.
+        panOnScroll
         panOnScrollMode={PanOnScrollMode.Free}
-        zoomOnScroll={canvasMode === 'zoom'}
+        zoomOnScroll={false}
         zoomOnPinch
         panOnDrag
         onNodeDragStop={(_, node) => persistPosition(node.id, node.position)}
@@ -143,8 +141,6 @@ function CanvasPanel() {
   const docNodeId = useCanvasStore((s) => s.nodes.find((n) => n.kind === 'document')?.id);
   const flash = useCanvasStore((s) => s.flash);
   const applyPositions = useCanvasStore((s) => s.applyPositions);
-  const canvasMode = useCanvasStore((s) => s.canvasMode);
-  const toggleCanvasMode = useCanvasStore((s) => s.toggleCanvasMode);
   const { fitView, getNodes } = useReactFlow();
 
   const focusDocument = () => {
@@ -172,16 +168,6 @@ function CanvasPanel() {
 
   return (
     <Panel position="top-left" className="canvas-panel">
-      <button
-        onClick={toggleCanvasMode}
-        title={
-          canvasMode === 'scroll'
-            ? 'Scroll mode: wheel pans. Click to switch to zoom mode.'
-            : 'Zoom mode: wheel zooms. Click to switch to scroll mode.'
-        }
-      >
-        {canvasMode === 'scroll' ? '✋ Scroll' : '🔍 Zoom'}
-      </button>
       <button onClick={focusDocument} title="Center and zoom to the document">
         Focus document
       </button>
