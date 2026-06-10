@@ -1,75 +1,63 @@
-import type { CanvasNode, Position } from '@reader/shared';
+import type { Position } from '@reader/shared';
 
-const COL_X = 560; // horizontal step per depth level
-const ROW_GAP = 40;
-const DOC_HEIGHT = 620;
-const BRANCH_HEIGHT = 360;
-const COLLAPSED_HEIGHT = 52;
+const COL_GAP = 120; // horizontal gap between depth columns
+const ROW_GAP = 48; // vertical gap between nodes in a column
+
+export interface LayoutNode {
+  id: string;
+  kind: 'document' | 'branch';
+  parentNodeId?: string;
+  /** Measured width/height from React Flow (falls back to estimates). */
+  width: number;
+  height: number;
+}
 
 /**
- * Deterministic column-by-depth layout: depth 0 is the document, each branch
- * sits one column right of its parent, stacked top-to-bottom within its column
- * with no overlap. Returns new positions keyed by node id.
+ * Column-by-depth tidy layout using MEASURED node sizes — depth 0 is the
+ * document, each branch sits one column right of its parent. Column x is the
+ * running sum of previous columns' widths (so a wide document never overlaps
+ * the next column), and within a column nodes stack by their real heights (so
+ * a tall conversation never overlaps the node below it).
  */
-export function tidyPositions(
-  nodes: CanvasNode[],
-  collapsed: Record<string, boolean>,
-): Record<string, Position> {
+export function tidyPositions(nodes: LayoutNode[]): Record<string, Position> {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const depthOf = (id: string): number => {
     let d = 0;
     let cur = byId.get(id);
-    while (cur && cur.kind === 'branch') {
+    const seen = new Set<string>();
+    while (cur && cur.kind === 'branch' && cur.parentNodeId && !seen.has(cur.id)) {
+      seen.add(cur.id);
       d += 1;
       cur = byId.get(cur.parentNodeId);
     }
     return d;
   };
 
-  // Group by depth, preserving creation order.
-  const columns = new Map<number, CanvasNode[]>();
+  const columns = new Map<number, LayoutNode[]>();
   for (const n of nodes) {
     const d = depthOf(n.id);
-    (columns.get(d) ?? columns.set(d, []).get(d)!).push(n);
+    if (!columns.has(d)) columns.set(d, []);
+    columns.get(d)!.push(n);
+  }
+
+  const depths = [...columns.keys()].sort((a, b) => a - b);
+
+  // x offset per column = sum of prior columns' max widths + gaps.
+  const colX = new Map<number, number>();
+  let x = 0;
+  for (const d of depths) {
+    colX.set(d, x);
+    const maxW = Math.max(...columns.get(d)!.map((n) => n.width));
+    x += maxW + COL_GAP;
   }
 
   const positions: Record<string, Position> = {};
-  for (const [depth, colNodes] of [...columns.entries()].sort((a, b) => a[0] - b[0])) {
+  for (const d of depths) {
     let y = 0;
-    for (const n of colNodes) {
-      positions[n.id] = { x: depth * COL_X, y };
-      const h =
-        n.kind === 'document'
-          ? DOC_HEIGHT
-          : collapsed[n.id]
-            ? COLLAPSED_HEIGHT
-            : BRANCH_HEIGHT;
-      y += h + ROW_GAP;
+    for (const n of columns.get(d)!) {
+      positions[n.id] = { x: colX.get(d)!, y };
+      y += n.height + ROW_GAP;
     }
   }
   return positions;
-}
-
-/** Place a brand-new branch near its anchor, nudging clear of siblings. */
-export function placeNewBranch(
-  nodes: CanvasNode[],
-  parentNodeId: string,
-  anchorScreenY: number,
-): Position {
-  const parent = nodes.find((n) => n.id === parentNodeId);
-  if (!parent) return { x: 0, y: anchorScreenY };
-  const parentWidth = parent.kind === 'document' ? parent.width : 380;
-  const pos = { x: parent.position.x + parentWidth + 120, y: anchorScreenY };
-
-  const siblings = nodes.filter(
-    (n) => n.kind === 'branch' && n.parentNodeId === parentNodeId,
-  );
-  while (
-    siblings.some(
-      (s) => Math.abs(s.position.x - pos.x) < 380 && Math.abs(s.position.y - pos.y) < BRANCH_HEIGHT,
-    )
-  ) {
-    pos.y += BRANCH_HEIGHT + ROW_GAP;
-  }
-  return pos;
 }

@@ -12,9 +12,10 @@ import {
   type Provider,
 } from '@reader/shared';
 import * as api from '../api/client';
-import { tidyPositions } from '../canvas/layout';
 
 const MODEL_STORAGE_KEY = 'reader.selectedModel';
+
+export type CanvasMode = 'scroll' | 'zoom';
 
 function loadStoredModel(): string {
   try {
@@ -35,10 +36,17 @@ interface CanvasState {
   collapsed: Record<string, boolean>;
   /** Node id to briefly pulse (e.g. a branch's source span after focus). */
   flashNodeId: string | null;
+  /** Wheel behavior: 'scroll' pans the canvas (default), 'zoom' zooms it. */
+  canvasMode: CanvasMode;
+  /** Node id the viewport should glide to (set on new request; cleared after). */
+  focusTarget: string | null;
 
   toggleCollapsed(branchId: string): void;
-  tidy(): void;
+  applyPositions(positions: Record<string, Position>): void;
   flash(nodeId: string): void;
+  toggleCanvasMode(): void;
+  requestFocus(nodeId: string): void;
+  clearFocus(): void;
 
   /** Model selection (global app setting, persisted to localStorage). */
   selectedModel: string;
@@ -85,7 +93,8 @@ async function consumeStream(
   set((s) => {
     const errors = { ...s.errors };
     delete errors[branchId];
-    return { streaming: { ...s.streaming, [branchId]: '' }, errors };
+    // Glide the viewport to the branch the request belongs to.
+    return { streaming: { ...s.streaming, [branchId]: '' }, errors, focusTarget: branchId };
   });
 
   const clearStreaming = (s: CanvasState) => {
@@ -164,14 +173,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   errors: {},
   collapsed: {},
   flashNodeId: null,
+  canvasMode: 'scroll',
+  focusTarget: null,
 
   toggleCollapsed: (branchId) =>
     set((s) => ({ collapsed: { ...s.collapsed, [branchId]: !s.collapsed[branchId] } })),
 
-  tidy: () => {
-    const { doc, nodes, collapsed } = get();
+  toggleCanvasMode: () =>
+    set((s) => ({ canvasMode: s.canvasMode === 'scroll' ? 'zoom' : 'scroll' })),
+
+  requestFocus: (nodeId) => set({ focusTarget: nodeId }),
+  clearFocus: () => set({ focusTarget: null }),
+
+  applyPositions: (positions) => {
+    const { doc, nodes } = get();
     if (!doc) return;
-    const positions = tidyPositions(nodes, collapsed);
     set({
       nodes: nodes.map((n) => (positions[n.id] ? { ...n, position: positions[n.id]! } : n)),
     });
@@ -212,14 +228,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
   },
 
-  setCanvas: (doc, nodes) => set({ doc, nodes, streaming: {}, errors: {}, collapsed: {}, flashNodeId: null }),
+  setCanvas: (doc, nodes) => set({ doc, nodes, streaming: {}, errors: {}, collapsed: {}, flashNodeId: null, focusTarget: null }),
 
   loadCanvas: async (docId) => {
     const { document, nodes } = await api.getCanvas(docId);
-    set({ doc: document, nodes, streaming: {}, errors: {}, collapsed: {}, flashNodeId: null });
+    set({ doc: document, nodes, streaming: {}, errors: {}, collapsed: {}, flashNodeId: null, focusTarget: null });
   },
 
-  reset: () => set({ doc: null, nodes: [], streaming: {}, errors: {}, collapsed: {}, flashNodeId: null }),
+  reset: () => set({ doc: null, nodes: [], streaming: {}, errors: {}, collapsed: {}, flashNodeId: null, focusTarget: null }),
 
   moveNodeLocal: (nodeId, position) =>
     set((s) => ({
@@ -239,7 +255,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     try {
       const { node } = await api.createBranch(doc.id, { parentNodeId, anchor, title });
       if (position) node.position = position;
-      set((s) => ({ nodes: [...s.nodes, node] }));
+      // Glide to the new branch (sendMessage will re-affirm focus on stream start).
+      set((s) => ({ nodes: [...s.nodes, node], focusTarget: node.id }));
       if (position) {
         void api.patchPosition(node.id, doc.id, position.x, position.y);
       }
