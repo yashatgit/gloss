@@ -28,7 +28,7 @@ function CanvasScreen() {
   const title = useCanvasStore((s) => s.doc?.title ?? '');
   const reset = useCanvasStore((s) => s.reset);
   const globalError = useCanvasStore((s) => s.errors.global);
-  const total = useCanvasStore((s) => docCost(s.nodes));
+  const total = useCanvasStore((s) => docCost(s.nodes, s.doc));
   return (
     <div className="canvas-screen">
       <div className="top-bar">

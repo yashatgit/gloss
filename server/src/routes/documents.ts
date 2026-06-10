@@ -77,6 +77,8 @@ function runImport(
 ) {
   return streamSSE(c, async (stream) => {
     let markdown = '';
+    let importUsage: Doc['importUsage'];
+    let importModel = opts.model;
     try {
       for await (const chunk of streamTranscription(
         opts.model,
@@ -89,6 +91,8 @@ function runImport(
           await stream.writeSSE({ event: 'delta', data: JSON.stringify({ text: chunk.text }) });
         } else {
           markdown = chunk.text;
+          importUsage = chunk.usage;
+          importModel = chunk.model;
         }
       }
 
@@ -105,7 +109,15 @@ function runImport(
         markdown: clean,
         originalImagePath: assetRel,
         createdAt: new Date().toISOString(),
+        importUsage,
+        importModel,
       };
+      if (importUsage) {
+        console.log(
+          `[import] doc=${docId} model=${importModel} in=${importUsage.input_tokens} ` +
+            `out=${importUsage.output_tokens}`,
+        );
+      }
       const canvas: Canvas = { nodes: [makeDocumentNode(docId)] };
       store.createDocument(document, canvas);
       await stream.writeSSE({ event: 'done', data: JSON.stringify({ document, canvas }) });

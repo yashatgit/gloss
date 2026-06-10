@@ -57,7 +57,7 @@ export const openaiProvider: ChatProvider = {
       }
       if (chunk.usage) usage = normalizeUsage(chunk.usage);
     }
-    yield { type: 'final', text, usage };
+    yield { type: 'final', text, usage, model };
   },
 
   async *streamVision({ model, mediaType, data, prompt, signal }: VisionArgs) {
@@ -89,6 +89,6 @@ export const openaiProvider: ChatProvider = {
       }
       if (chunk.usage) usage = normalizeUsage(chunk.usage);
     }
-    yield { type: 'final', text, usage };
+    yield { type: 'final', text, usage, model };
   },
 };

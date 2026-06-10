@@ -61,7 +61,7 @@ export const anthropicProvider: ChatProvider = {
       .filter((b) => b.type === 'text')
       .map((b) => b.text)
       .join('');
-    yield { type: 'final', text, usage: normalizeUsage(final.usage) };
+    yield { type: 'final', text, usage: normalizeUsage(final.usage), model };
   },
 
   async *streamVision({ model, mediaType, data, prompt, signal }: VisionArgs) {
@@ -97,6 +97,6 @@ export const anthropicProvider: ChatProvider = {
       .filter((b) => b.type === 'text')
       .map((b) => b.text)
       .join('');
-    yield { type: 'final', text, usage: normalizeUsage(final.usage) };
+    yield { type: 'final', text, usage: normalizeUsage(final.usage), model };
   },
 };

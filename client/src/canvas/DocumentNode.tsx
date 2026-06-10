@@ -1,6 +1,8 @@
 import { memo, useRef } from 'react';
 import type { NodeProps } from '@xyflow/react';
+import { formatCost } from '@reader/shared';
 import { useCanvasStore } from '../state/canvasStore';
+import { importCost } from '../state/cost';
 import { MarkdownView } from '../reading/MarkdownView';
 import { AnchorHandles } from './AnchorHandles';
 import {
@@ -32,6 +34,11 @@ export const DocumentNodeView = memo(function DocumentNodeView({ id }: NodeProps
       <div className="node-drag-handle node-header">
         <span className="node-kind">document</span>
         <span className="node-title">{doc.title}</span>
+        {doc.importUsage && (
+          <span className="branch-cost" title="One-time cost to transcribe this file">
+            {formatCost(importCost(doc))}
+          </span>
+        )}
       </div>
       {/* nowheel: wheel scrolls this pane, not the canvas zoom.
           nodrag: drag-select selects text instead of moving the node. */}

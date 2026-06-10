@@ -9,7 +9,7 @@ export interface NeutralMessage {
 /** Provider-neutral stream chunk. Providers yield deltas, then one final. */
 export type StreamChunk =
   | { type: 'delta'; text: string }
-  | { type: 'final'; text: string; usage: Usage };
+  | { type: 'final'; text: string; usage: Usage; model: string };
 
 export interface ChatArgs {
   model: string;

@@ -1,14 +1,20 @@
-import { costOfUsage, type BranchNode, type CanvasNode } from '@reader/shared';
+import { costOfUsage, type BranchNode, type CanvasNode, type Doc } from '@reader/shared';
 
 /** Estimated cost of one branch's conversation (sums assistant-message usage). */
 export function branchCost(branch: BranchNode): number {
   return branch.messages.reduce((sum, m) => sum + costOfUsage(m.model, m.usage), 0);
 }
 
-/** Estimated cost across every branch on the canvas. */
-export function docCost(nodes: CanvasNode[]): number {
-  return nodes.reduce(
+/** Estimated one-time cost of transcribing an image/PDF document. */
+export function importCost(doc: Doc | null): number {
+  return doc ? costOfUsage(doc.importModel, doc.importUsage) : 0;
+}
+
+/** Estimated total cost: every branch on the canvas + the doc's transcription. */
+export function docCost(nodes: CanvasNode[], doc: Doc | null): number {
+  const branches = nodes.reduce(
     (sum, n) => (n.kind === 'branch' ? sum + branchCost(n) : sum),
     0,
   );
+  return branches + importCost(doc);
 }

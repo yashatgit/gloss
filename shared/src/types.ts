@@ -9,6 +9,9 @@ export interface Doc {
   /** Relative path inside the document's data dir, e.g. "assets/original.png". */
   originalImagePath?: string;
   createdAt: string;
+  /** For image/PDF docs: the cost of the one-time transcription. */
+  importUsage?: Usage;
+  importModel?: string;
 }
 
 /**
