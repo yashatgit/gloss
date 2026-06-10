@@ -6,6 +6,7 @@ import { useCanvasStore } from './state/canvasStore';
 import { docCost } from './state/cost';
 import { CanvasView } from './canvas/Canvas';
 import { ModelPicker } from './components/ModelPicker';
+import { DisplayControls } from './components/DisplayControls';
 
 export default function App() {
   const hasDoc = useCanvasStore((s) => s.doc !== null);
@@ -15,7 +16,12 @@ export default function App() {
     void loadConfig().catch(() => undefined);
   }, [loadConfig]);
 
-  return hasDoc ? <CanvasScreen /> : <HomePage />;
+  return (
+    <>
+      {hasDoc ? <CanvasScreen /> : <HomePage />}
+      <DisplayControls />
+    </>
+  );
 }
 
 function CanvasScreen() {

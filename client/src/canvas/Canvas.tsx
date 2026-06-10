@@ -24,8 +24,9 @@ import { SelectionOverlay } from './SelectionOverlay';
 // remount every node.
 const nodeTypes = { document: DocumentNodeView, branch: BranchNodeView };
 
+// Edge color is themed in CSS (.react-flow__edge-path) so light/dark both work.
 const defaultEdgeOptions = {
-  style: { stroke: '#b4552d', strokeWidth: 1.5, opacity: 0.7 },
+  style: { strokeWidth: 2, opacity: 0.55 },
 };
 
 export function CanvasView() {
@@ -110,7 +111,7 @@ function CanvasInner() {
         panOnDrag
         onNodeDragStop={(_, node) => persistPosition(node.id, node.position)}
       >
-        <Background gap={28} />
+        <Background gap={32} color="rgba(130,125,120,0.18)" />
         <Controls showInteractive={false} />
         <MiniMap pannable zoomable />
         <FocusController />

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reader — Option 3 · Editorial Glass</title>
+    <style>
+      :root {
+        --ink: #2b2926;
+        --soft: #76716a;
+        --faint: #a8a29a;
+        --accent: #1d6fe0;
+        --border: rgba(60, 50, 40, 0.1);
+        --glass: rgba(255, 255, 255, 0.55);
+        --glass-strong: rgba(255, 255, 255, 0.78);
+        --mark: rgba(255, 211, 110, 0.55);
+        --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+        --font-read: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+        --shadow: 0 24px 70px rgba(60, 45, 30, 0.14), 0 4px 14px rgba(60, 45, 30, 0.08);
+        --radius: 26px;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: var(--font-ui); color: var(--ink); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+        background:
+          radial-gradient(1000px 700px at 12% 0%, #fdf3e7 0%, transparent 55%),
+          radial-gradient(1100px 800px at 100% 100%, #eaf0fb 0%, transparent 55%),
+          radial-gradient(700px 600px at 60% 40%, #f6ecfb 0%, transparent 60%),
+          #f4f1ec; }
+      .ribbon { position: fixed; bottom: 18px; right: 18px; z-index: 50; background: var(--glass-strong); backdrop-filter: blur(24px) saturate(180%); border: 1px solid var(--border); border-radius: 980px; padding: 9px 18px; font-size: 12px; font-weight: 600; box-shadow: var(--shadow); }
+
+      .topbar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); height: 54px; display: flex; align-items: center; gap: 18px; padding: 0 12px 0 22px; background: var(--glass-strong); backdrop-filter: blur(30px) saturate(180%); border: 1px solid var(--border); border-radius: 980px; z-index: 30; box-shadow: var(--shadow); }
+      .back { display: flex; align-items: center; gap: 4px; color: var(--accent); font-size: 14px; font-weight: 500; cursor: pointer; }
+      .sep { width: 1px; height: 20px; background: var(--border); }
+      .doc-title { font-family: var(--font-read); font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+      .cost { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; }
+      .cost small { color: var(--faint); font-weight: 400; margin-left: 3px; }
+      .picker { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.7); border: 1px solid var(--border); border-radius: 980px; padding: 8px 14px; font-size: 13px; font-weight: 500; }
+      .picker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+      .picker .chev { color: var(--faint); font-size: 10px; }
+
+      .canvas { position: absolute; inset: 0; }
+      svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+      .card { position: absolute; background: var(--glass); backdrop-filter: blur(40px) saturate(180%); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+      .card-head { display: flex; align-items: center; gap: 10px; padding: 16px 22px; }
+      .chip { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+      .head-title { font-size: 13px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+      .head-spacer { flex: 1; }
+      .icon-btn { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--faint); cursor: pointer; }
+      .icon-btn:hover { background: rgba(255,255,255,0.6); color: var(--ink); }
+
+      .doc { left: 70px; top: 110px; width: 620px; background: rgba(255,255,255,0.82); }
+      .doc .body { padding: 12px 50px 44px; font-family: var(--font-read); font-size: 20px; line-height: 1.7; max-height: 540px; overflow-y: auto; }
+      .doc h1 { font-family: var(--font-read); font-size: 40px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 24px; line-height: 1.1; }
+      mark { background: var(--mark); border-radius: 5px; padding: 0 3px; box-decoration-break: clone; }
+
+      .branch { left: 790px; top: 200px; width: 400px; }
+      .thread { padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 16px; max-height: 360px; overflow-y: auto; }
+      .msg-user { align-self: flex-end; background: var(--accent); color: #fff; border-radius: 20px 20px 6px 20px; padding: 10px 16px; font-size: 14px; max-width: 82%; box-shadow: 0 4px 14px rgba(29,111,224,0.25); }
+      .msg-ai { font-family: var(--font-read); font-size: 16px; line-height: 1.6; color: var(--ink); }
+      .usage { font-family: var(--font-ui); margin-top: 10px; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+      .composer { display: flex; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--border); }
+      .composer input { flex: 1; border: 1px solid var(--border); border-radius: 980px; padding: 11px 16px; font: inherit; font-size: 13px; background: rgba(255,255,255,0.7); }
+      .composer input::placeholder { color: var(--faint); }
+      .send { width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--accent); color: #fff; font-size: 16px; cursor: pointer; box-shadow: 0 4px 14px rgba(29,111,224,0.3); }
+
+      .seltool { position: absolute; left: 280px; top: 360px; display: flex; gap: 3px; background: var(--glass-strong); backdrop-filter: blur(30px) saturate(180%); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; padding: 6px; box-shadow: var(--shadow); }
+      .seltool button { border: none; background: transparent; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); padding: 8px 15px; border-radius: 11px; cursor: pointer; }
+      .seltool button:hover { background: rgba(60,50,40,0.07); }
+      .seltool .accent { color: var(--accent); }
+
+      .controls { position: absolute; left: 22px; bottom: 22px; display: flex; gap: 9px; }
+      .controls button { background: var(--glass-strong); backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.6); border-radius: 980px; padding: 10px 18px; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; box-shadow: var(--shadow); }
+    </style>
+  </head>
+  <body>
+    <div class="ribbon">Option 3 — Editorial Glass</div>
+    <div class="topbar">
+      <span class="back">‹ Documents</span>
+      <span class="sep"></span>
+      <span class="doc-title">Attention Is All You Need</span>
+      <span class="sep"></span>
+      <span class="cost">$0.0021<small>this doc</small></span>
+      <span class="picker"><span class="dot"></span> Claude Sonnet 4.6 <span class="chev">▾</span></span>
+    </div>
+
+    <div class="canvas">
+      <svg class="edges"><path d="M 690 380 C 760 380, 740 300, 790 300" stroke="#1d6fe0" stroke-width="2" fill="none" opacity="0.5" /></svg>
+
+      <div class="card doc">
+        <div class="card-head"><span class="chip">Document</span><span class="head-title">Attention Is All You Need</span></div>
+        <div class="body">
+          <h1>Attention Is All You Need</h1>
+          <p>The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms.</p>
+          <p style="margin-top:20px"><mark>Self-attention</mark>, sometimes called intra-attention, is an attention mechanism relating different positions of a single sequence in order to compute a representation.</p>
+        </div>
+      </div>
+
+      <div class="seltool">
+        <button class="accent">Explain</button>
+        <button>More context</button>
+        <button>Ask…</button>
+      </div>
+
+      <div class="card branch">
+        <div class="card-head"><span class="chip">Branch</span><span class="head-title">“self-attention”</span><span class="head-spacer"></span><span class="icon-btn">▾</span><span class="icon-btn">×</span></div>
+        <div class="thread">
+          <div class="msg-user">Explain this.</div>
+          <div class="msg-ai">Self-attention lets each position in a sequence look at every other position to build its representation — so the model can weigh how much each word matters to every other word, all at once.<div class="usage">Claude Sonnet 4.6 · 228→80 tok · ⚡6.6k cached · $0.0008</div></div>
+        </div>
+        <div class="composer"><input placeholder="Ask a follow-up…" /><button class="send">↑</button></div>
+      </div>
+
+      <div class="controls"><button>Focus document</button><button>Tidy layout</button></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reader — Option 2 · Dark Pro</title>
+    <style>
+      :root {
+        --bg: #0b0b0d;
+        --panel: rgba(28, 28, 30, 0.85);
+        --panel-solid: #1c1c1e;
+        --raise: #2c2c2e;
+        --glass: rgba(28, 28, 30, 0.66);
+        --ink: #f5f5f7;
+        --soft: #98989d;
+        --faint: #6e6e73;
+        --accent: #0a84ff;
+        --accent-2: #5e5ce6;
+        --border: rgba(255, 255, 255, 0.1);
+        --mark: rgba(255, 214, 10, 0.28);
+        --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+        --font-read: ui-serif, 'New York', Georgia, serif;
+        --shadow: 0 16px 50px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.4);
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: var(--font-ui); color: var(--ink); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+        background:
+          radial-gradient(1200px 600px at 80% -10%, rgba(94, 92, 230, 0.16), transparent 60%),
+          radial-gradient(900px 500px at 0% 110%, rgba(10, 132, 255, 0.14), transparent 55%),
+          var(--bg); }
+      .ribbon { position: fixed; bottom: 16px; right: 16px; z-index: 50; background: var(--glass); backdrop-filter: blur(20px) saturate(160%); border: 1px solid var(--border); border-radius: 980px; padding: 8px 16px; font-size: 12px; font-weight: 600; color: var(--ink); }
+
+      .topbar { position: fixed; top: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 18px; background: var(--glass); backdrop-filter: blur(24px) saturate(160%); border-bottom: 1px solid var(--border); z-index: 30; }
+      .back { display: flex; align-items: center; gap: 4px; color: var(--accent); font-size: 14px; font-weight: 500; cursor: pointer; }
+      .doc-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+      .spacer { flex: 1; }
+      .cost { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; }
+      .cost small { color: var(--faint); font-weight: 400; margin-left: 3px; }
+      .picker { display: flex; align-items: center; gap: 7px; background: var(--raise); border: 1px solid var(--border); border-radius: 980px; padding: 6px 12px; font-size: 13px; font-weight: 500; }
+      .picker .dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+      .picker .chev { color: var(--faint); font-size: 10px; }
+
+      .canvas { position: absolute; inset: 52px 0 0 0;
+        background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0); background-size: 26px 26px; }
+      svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+      .card { position: absolute; background: var(--panel); backdrop-filter: blur(30px) saturate(160%); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+      .card-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+      .chip { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); padding: 2px 8px; border-radius: 980px; }
+      .head-title { font-size: 13px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .head-spacer { flex: 1; }
+      .icon-btn { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: var(--faint); cursor: pointer; }
+      .icon-btn:hover { background: var(--raise); color: var(--ink); }
+
+      .doc { left: 60px; top: 56px; width: 600px; }
+      .doc .body { padding: 32px 40px; font-family: var(--font-read); font-size: 19px; line-height: 1.65; max-height: 560px; overflow-y: auto; color: #e8e8ed; }
+      .doc h1 { font-family: var(--font-read); font-size: 34px; letter-spacing: -0.02em; margin-bottom: 20px; color: #fff; }
+      mark { background: var(--mark); color: #ffe98a; border-radius: 4px; padding: 0 2px; box-decoration-break: clone; }
+
+      .branch { left: 760px; top: 150px; width: 380px; }
+      .thread { padding: 16px; display: flex; flex-direction: column; gap: 14px; max-height: 360px; overflow-y: auto; }
+      .msg-user { align-self: flex-end; background: linear-gradient(135deg, var(--accent), #0066d6); color: #fff; border-radius: 18px 18px 4px 18px; padding: 9px 14px; font-size: 14px; max-width: 80%; }
+      .msg-ai { font-size: 14px; line-height: 1.55; color: #e8e8ed; }
+      .usage { margin-top: 8px; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+      .composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); }
+      .composer input { flex: 1; border: 1px solid var(--border); border-radius: 980px; padding: 9px 14px; font: inherit; font-size: 13px; background: rgba(0,0,0,0.3); color: var(--ink); }
+      .composer input::placeholder { color: var(--faint); }
+      .send { width: 34px; height: 34px; border-radius: 50%; border: none; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-size: 15px; cursor: pointer; }
+
+      .seltool { position: absolute; left: 250px; top: 300px; display: flex; gap: 2px; background: rgba(44,44,46,0.8); backdrop-filter: blur(24px) saturate(160%); border: 1px solid var(--border); border-radius: 12px; padding: 5px; box-shadow: 0 16px 50px rgba(0,0,0,0.6); }
+      .seltool button { border: none; background: transparent; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); padding: 7px 13px; border-radius: 8px; cursor: pointer; }
+      .seltool button:hover { background: rgba(255,255,255,0.1); }
+      .seltool .accent { color: #4da3ff; }
+
+      .controls { position: absolute; left: 20px; bottom: 20px; display: flex; gap: 8px; }
+      .controls button { background: var(--glass); backdrop-filter: blur(20px) saturate(160%); border: 1px solid var(--border); border-radius: 980px; padding: 9px 16px; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; box-shadow: var(--shadow); }
+    </style>
+  </head>
+  <body>
+    <div class="ribbon">Option 2 — Dark Pro</div>
+    <div class="topbar">
+      <span class="back">‹ Documents</span>
+      <span class="doc-title">Attention Is All You Need</span>
+      <span class="spacer"></span>
+      <span class="cost">$0.0021<small>this doc</small></span>
+      <span class="picker"><span class="dot"></span> Claude Sonnet 4.6 <span class="chev">▾</span></span>
+    </div>
+
+    <div class="canvas">
+      <svg class="edges"><path d="M 600 360 C 690 360, 690 250, 760 250" stroke="#0a84ff" stroke-width="2" fill="none" opacity="0.7" /></svg>
+
+      <div class="card doc">
+        <div class="card-head"><span class="chip">Document</span><span class="head-title">Attention Is All You Need</span></div>
+        <div class="body">
+          <h1>Attention Is All You Need</h1>
+          <p>The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms.</p>
+          <p style="margin-top:18px"><mark>Self-attention</mark>, sometimes called intra-attention, is an attention mechanism relating different positions of a single sequence in order to compute a representation.</p>
+        </div>
+      </div>
+
+      <div class="seltool">
+        <button class="accent">Explain</button>
+        <button>More context</button>
+        <button>Ask…</button>
+      </div>
+
+      <div class="card branch">
+        <div class="card-head"><span class="chip">Branch</span><span class="head-title">“self-attention”</span><span class="head-spacer"></span><span class="icon-btn">▾</span><span class="icon-btn">×</span></div>
+        <div class="thread">
+          <div class="msg-user">Explain this.</div>
+          <div class="msg-ai">Self-attention lets each position in a sequence look at every other position to build its representation — so the model can weigh how much each word matters to every other word, all in parallel.<div class="usage">Claude Sonnet 4.6 · 228→80 tok · ⚡6.6k cached · $0.0008</div></div>
+        </div>
+        <div class="composer"><input placeholder="Ask a follow-up…" /><button class="send">↑</button></div>
+      </div>
+
+      <div class="controls"><button>Focus document</button><button>Tidy layout</button></div>
+    </div>
+  </body>
+</html>

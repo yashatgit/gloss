@@ -14,6 +14,13 @@ import {
 import * as api from '../api/client';
 
 const MODEL_STORAGE_KEY = 'reader.selectedModel';
+const THEME_KEY = 'reader.theme';
+const FONT_KEY = 'reader.fontScale';
+
+export type Theme = 'light' | 'dark';
+export const FONT_MIN = 0.85;
+export const FONT_MAX = 1.5;
+const FONT_STEP = 0.1;
 
 function loadStoredModel(): string {
   try {
@@ -21,6 +28,39 @@ function loadStoredModel(): string {
   } catch {
     return DEFAULT_MODEL;
   }
+}
+
+function systemTheme(): Theme {
+  return typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
+}
+
+function loadTheme(): Theme {
+  try {
+    return (localStorage.getItem(THEME_KEY) as Theme | null) ?? systemTheme();
+  } catch {
+    return 'light';
+  }
+}
+
+function loadFontScale(): number {
+  try {
+    const v = Number(localStorage.getItem(FONT_KEY));
+    return v >= FONT_MIN && v <= FONT_MAX ? v : 1;
+  } catch {
+    return 1;
+  }
+}
+
+/** Side-effects applied to <html> so CSS variables pick them up. */
+export function applyTheme(theme: Theme): void {
+  if (typeof document !== 'undefined') document.documentElement.dataset.theme = theme;
+}
+export function applyFontScale(scale: number): void {
+  if (typeof document !== 'undefined')
+    document.documentElement.style.setProperty('--reading-scale', String(scale));
 }
 
 interface CanvasState {
@@ -42,6 +82,13 @@ interface CanvasState {
   flash(nodeId: string): void;
   requestFocus(nodeId: string): void;
   clearFocus(): void;
+
+  /** Display preferences (persisted, applied to <html>). */
+  theme: Theme;
+  fontScale: number;
+  toggleTheme(): void;
+  setFontScale(scale: number): void;
+  bumpFontScale(delta: number): void;
 
   /** Model selection (global app setting, persisted to localStorage). */
   selectedModel: string;
@@ -193,6 +240,33 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       if (get().flashNodeId === nodeId) set({ flashNodeId: null });
     }, 1200);
   },
+
+  theme: loadTheme(),
+  fontScale: loadFontScale(),
+
+  toggleTheme: () => {
+    const theme: Theme = get().theme === 'dark' ? 'light' : 'dark';
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      // ignore
+    }
+    applyTheme(theme);
+    set({ theme });
+  },
+
+  setFontScale: (scale) => {
+    const clamped = Math.min(FONT_MAX, Math.max(FONT_MIN, Math.round(scale * 100) / 100));
+    try {
+      localStorage.setItem(FONT_KEY, String(clamped));
+    } catch {
+      // ignore
+    }
+    applyFontScale(clamped);
+    set({ fontScale: clamped });
+  },
+
+  bumpFontScale: (delta) => get().setFontScale(get().fontScale + delta * FONT_STEP),
 
   selectedModel: loadStoredModel(),
   models: [],
