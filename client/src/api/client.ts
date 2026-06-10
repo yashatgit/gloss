@@ -143,6 +143,43 @@ export interface ImportHandlers {
   onError: (error: SSEError) => void;
 }
 
+function importStream(
+  path: string,
+  body: unknown,
+  handlers: ImportHandlers,
+  signal?: AbortSignal,
+): Promise<void> {
+  return postSSE(
+    `${BASE}${path}`,
+    body,
+    (event, payload) => {
+      switch (event) {
+        case 'delta':
+          handlers.onDelta((payload as { text: string }).text);
+          break;
+        case 'done': {
+          const d = payload as { document: Doc; canvas: Canvas };
+          handlers.onDone(d.document, d.canvas);
+          break;
+        }
+        case 'error':
+          handlers.onError(payload as SSEError);
+          break;
+      }
+    },
+    signal,
+  );
+}
+
+export function importPdf(
+  data: string,
+  model: string,
+  handlers: ImportHandlers,
+  signal?: AbortSignal,
+): Promise<void> {
+  return importStream('/documents/import-pdf', { data, model }, handlers, signal);
+}
+
 export function importImage(
   media_type: string,
   data: string,

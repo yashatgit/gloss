@@ -65,31 +65,24 @@ export const anthropicProvider: ChatProvider = {
   },
 
   async *streamVision({ model, mediaType, data, prompt, signal }: VisionArgs) {
+    // PDFs go through Claude's native document block; images through an image block.
+    const fileBlock: Anthropic.ContentBlockParam =
+      mediaType === 'application/pdf'
+        ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
+        : {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: mediaType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
+              data,
+            },
+          };
     const stream = getClient().messages.stream(
       {
         model,
         max_tokens: 64000,
         thinking: { type: 'adaptive' },
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mediaType as
-                    | 'image/png'
-                    | 'image/jpeg'
-                    | 'image/webp'
-                    | 'image/gif',
-                  data,
-                },
-              },
-              { type: 'text', text: prompt },
-            ],
-          },
-        ],
+        messages: [{ role: 'user', content: [fileBlock, { type: 'text', text: prompt }] }],
       },
       { signal },
     );

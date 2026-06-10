@@ -1,4 +1,4 @@
-export type DocumentSource = 'text' | 'markdown' | 'image';
+export type DocumentSource = 'text' | 'markdown' | 'image' | 'pdf';
 
 export interface Doc {
   id: string;

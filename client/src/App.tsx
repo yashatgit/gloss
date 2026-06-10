@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatCost, type DocumentSummary } from '@reader/shared';
 import * as api from './api/client';
-import { encodeImage } from './api/image';
+import { encodeImage, fileToBase64 } from './api/image';
 import { useCanvasStore } from './state/canvasStore';
 import { docCost } from './state/cost';
 import { CanvasView } from './canvas/Canvas';
@@ -54,6 +54,7 @@ function HomePage() {
   const [docs, setDocs] = useState<DocumentSummary[]>([]);
   const [importPreview, setImportPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement | null>(null);
   const setCanvas = useCanvasStore((s) => s.setCanvas);
   const loadCanvas = useCanvasStore((s) => s.loadCanvas);
 
@@ -75,6 +76,18 @@ function HomePage() {
     }
   }
 
+  const importHandlers = {
+    onDelta: (t: string) => setImportPreview((s) => (s ?? '') + t),
+    onDone: (document: Parameters<typeof setCanvas>[0], canvas: { nodes: Parameters<typeof setCanvas>[1] }) => {
+      setImportPreview(null);
+      setCanvas(document, canvas.nodes);
+    },
+    onError: (err: { type: string; status: number; message: string }) => {
+      setImportPreview(null);
+      setError(`${err.type} (${err.status}): ${err.message}`);
+    },
+  };
+
   async function handlePaste(e: React.ClipboardEvent) {
     const item = [...e.clipboardData.items].find((i) => i.type.startsWith('image/'));
     if (!item) return; // plain text falls through to the textarea
@@ -85,17 +98,19 @@ function HomePage() {
     setImportPreview('');
     try {
       const { mediaType, data } = await encodeImage(file);
-      await api.importImage(mediaType, data, useCanvasStore.getState().selectedModel, {
-        onDelta: (t) => setImportPreview((s) => (s ?? '') + t),
-        onDone: (document, canvas) => {
-          setImportPreview(null);
-          setCanvas(document, canvas.nodes);
-        },
-        onError: (err) => {
-          setImportPreview(null);
-          setError(`${err.type} (${err.status}): ${err.message}`);
-        },
-      });
+      await api.importImage(mediaType, data, useCanvasStore.getState().selectedModel, importHandlers);
+    } catch (err) {
+      setImportPreview(null);
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handlePdf(file: File) {
+    setError(null);
+    setImportPreview('');
+    try {
+      const data = await fileToBase64(file);
+      await api.importPdf(data, useCanvasStore.getState().selectedModel, importHandlers);
     } catch (err) {
       setImportPreview(null);
       setError(err instanceof Error ? err.message : String(err));
@@ -106,9 +121,9 @@ function HomePage() {
     return (
       <div className="paste-page">
         <h1>Reader</h1>
-        <p>Transcribing your image…</p>
+        <p>Transcribing your file…</p>
         <div className="import-preview markdown-body">
-          {importPreview || 'Reading the image…'}
+          {importPreview || 'Reading the file…'}
         </div>
       </div>
     );
@@ -130,9 +145,25 @@ function HomePage() {
         placeholder="Paste text or markdown here — or paste an image anywhere on this page…"
         rows={14}
       />
-      <button onClick={createDoc} disabled={!pasteText.trim()}>
-        Start reading
-      </button>
+      <div className="action-row">
+        <button onClick={createDoc} disabled={!pasteText.trim()}>
+          Start reading
+        </button>
+        <button className="upload-btn" onClick={() => pdfInputRef.current?.click()}>
+          ⬆ Upload PDF
+        </button>
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handlePdf(f);
+            e.target.value = '';
+          }}
+        />
+      </div>
       {error && <div className="error-bar">{error}</div>}
       {docs.length > 0 && (
         <div className="doc-list">

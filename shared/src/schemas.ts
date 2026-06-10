@@ -16,6 +16,12 @@ export const importImageSchema = z.object({
   model: modelId,
 });
 
+export const importPdfSchema = z.object({
+  // base64 PDF. ~30MB decoded cap.
+  data: z.string().min(1).max(40_000_000),
+  model: modelId,
+});
+
 export const anchorSchema = z.object({
   nodeId: z.string(),
   messageId: z.string().optional(),

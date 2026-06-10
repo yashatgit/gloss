@@ -93,7 +93,7 @@ input {
 .glass-btn,
 .canvas-panel button,
 .display-controls .dc-btn,
-.paste-page button,
+.upload-btn,
 .composer button {
   border: 1px solid var(--border);
   border-radius: 980px;
@@ -167,6 +167,9 @@ input {
   box-shadow: 0 6px 20px rgba(29, 111, 224, 0.3);
 }
 .paste-page > button:not(:disabled):hover { background: var(--accent-strong); transform: translateY(-1px); }
+.action-row { display: flex; gap: 12px; align-items: center; }
+.upload-btn { color: var(--ink); }
+.upload-btn:hover { border-color: var(--accent); color: var(--accent); }
 .model-row {
   display: flex;
   align-items: center;

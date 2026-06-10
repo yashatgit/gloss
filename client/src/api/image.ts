@@ -29,6 +29,11 @@ export async function encodeImage(
   return { mediaType, data: await toBase64(file) };
 }
 
+/** Read any file (e.g. a PDF) to bare base64. */
+export function fileToBase64(file: File): Promise<string> {
+  return toBase64(file);
+}
+
 function toBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

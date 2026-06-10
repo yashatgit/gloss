@@ -61,18 +61,18 @@ export const openaiProvider: ChatProvider = {
   },
 
   async *streamVision({ model, mediaType, data, prompt, signal }: VisionArgs) {
+    // PDFs use a `file` content part; images use `image_url`.
+    const fileBlock: OpenAI.Chat.Completions.ChatCompletionContentPart =
+      mediaType === 'application/pdf'
+        ? {
+            type: 'file',
+            file: { filename: 'document.pdf', file_data: `data:application/pdf;base64,${data}` },
+          }
+        : { type: 'image_url', image_url: { url: `data:${mediaType};base64,${data}` } };
     const stream = await getClient().chat.completions.create(
       {
         model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: `data:${mediaType};base64,${data}` } },
-            ],
-          },
-        ],
+        messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, fileBlock] }],
         stream: true,
         stream_options: { include_usage: true },
       },
