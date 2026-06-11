@@ -25,13 +25,24 @@ export function toHighlights(branches: BranchNode[]): HighlightSpec[] {
   }));
 }
 
-/** Click on a highlight → glide the viewport to its branch node. */
-export function useFocusBranch(): (branchId: string) => void {
-  const { fitView } = useReactFlow();
+/**
+ * Glide the viewport to center a node WITHOUT changing zoom — the user's zoom
+ * level is theirs; focusing (highlight click, new branch, focus document) only
+ * pans to the node's center at the current zoom.
+ */
+export function useFocusBranch(): (nodeId: string) => void {
+  const rf = useReactFlow();
   return useCallback(
-    (branchId: string) => {
-      void fitView({ nodes: [{ id: branchId }], duration: 350, maxZoom: 1, padding: 0.4 });
+    (nodeId: string) => {
+      const node = rf.getNode(nodeId);
+      if (!node) return;
+      const w = node.measured?.width ?? 400;
+      const h = node.measured?.height ?? 400;
+      void rf.setCenter(node.position.x + w / 2, node.position.y + h / 2, {
+        zoom: rf.getViewport().zoom,
+        duration: 400,
+      });
     },
-    [fitView],
+    [rf],
   );
 }

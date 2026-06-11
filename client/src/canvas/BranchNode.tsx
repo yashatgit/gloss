@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef, type PointerEvent as ReactPointerEvent } from 'react';
-import { Handle, Position, useReactFlow, useStore, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useStore, type NodeProps } from '@xyflow/react';
 import { formatCost, type BranchNode } from '@gloss/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import { branchCost } from '../state/cost';
@@ -37,7 +37,6 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchored = useAnchoredBranches(id);
   const focusBranch = useFocusBranch();
-  const { fitView } = useReactFlow();
 
   const highlightsFor = useCallback(
     (messageId: string) =>
@@ -45,10 +44,10 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
     [anchored],
   );
 
-  // Navigate to where this branch was anchored, and pulse the source span.
+  // Navigate to where this branch was anchored (zoom unchanged), pulse the span.
   const focusSource = useCallback(() => {
     if (!branch) return;
-    void fitView({ nodes: [{ id: branch.parentNodeId }], duration: 350, maxZoom: 1, padding: 0.3 });
+    focusBranch(branch.parentNodeId);
     flash(branch.parentNodeId);
     setTimeout(() => {
       const mark = document.querySelector(`mark[data-branch-id="${CSS.escape(id)}"]`);
@@ -57,7 +56,7 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
         setTimeout(() => mark.classList.remove('mark-flash'), 1100);
       }
     }, 380);
-  }, [branch, fitView, flash, id]);
+  }, [branch, focusBranch, flash, id]);
 
   // Corner drag-resize. Deltas are screen px → divide by zoom for flow px.
   const onResizeStart = useCallback(

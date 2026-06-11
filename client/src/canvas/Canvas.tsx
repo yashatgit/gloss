@@ -16,6 +16,7 @@ import '@xyflow/react/dist/style.css';
 import type { BranchNode as BranchNodeT } from '@gloss/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import { tidyPositions, type LayoutNode } from './layout';
+import { useFocusBranch } from './useAnchoredBranches';
 import { DocumentNodeView } from './DocumentNode';
 import { BranchNodeView } from './BranchNode';
 import { SelectionOverlay } from './SelectionOverlay';
@@ -311,18 +312,18 @@ function useAutoTidy(tidy: () => void) {
 function FocusController() {
   const focusTarget = useCanvasStore((s) => s.focusTarget);
   const clearFocus = useCanvasStore((s) => s.clearFocus);
-  const { fitView } = useReactFlow();
+  const focusNode = useFocusBranch(); // centers at the CURRENT zoom
 
   useEffect(() => {
     if (!focusTarget) return;
     // Run after the create-triggered auto-tidy (160ms) has repositioned the
     // node, so we frame its final spot rather than where it briefly mounted.
     const t = setTimeout(() => {
-      void fitView({ nodes: [{ id: focusTarget }], duration: 400, maxZoom: 1, padding: 0.3 });
+      focusNode(focusTarget);
       clearFocus();
     }, 240);
     return () => clearTimeout(t);
-  }, [focusTarget, fitView, clearFocus]);
+  }, [focusTarget, focusNode, clearFocus]);
 
   return null;
 }

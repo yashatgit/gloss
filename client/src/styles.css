@@ -542,29 +542,40 @@ input {
 
 /* fenced code block — light panel with a line-number gutter */
 .markdown-body .cf-codeblock {
-  margin: 0 0 1.1em;
+  margin: 1.35em 0;
   background: var(--code-bg);
   border: 1px solid var(--code-border);
-  border-radius: 6px;
+  border-radius: 9px;
   overflow: hidden;
 }
 .cf-pre {
   margin: 0;
-  padding: 12px 0;
+  padding: 0;
   overflow-x: auto;
   counter-reset: cfline;
+}
+/* spacer rows above/below the code keep the gutter column continuous,
+   running edge-to-edge instead of floating inside white padding */
+.cf-pre::before,
+.cf-pre::after {
+  content: '';
+  display: block;
+  height: 11px;
+  width: 44px;
+  background: var(--gutter-bg);
+  border-right: 1px solid var(--code-border);
 }
 .cf-pre code {
   display: block;
   font-family: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, monospace;
   font-size: calc(13.5px * var(--reading-scale));
-  line-height: 1.55;
+  line-height: 1.6;
 }
 .cf-line {
   counter-increment: cfline;
   display: block;
   position: relative;
-  padding: 0 18px 0 56px;
+  padding: 0 20px 0 60px;
   white-space: pre;
 }
 .cf-line::before {
@@ -572,11 +583,13 @@ input {
   position: absolute;
   left: 0;
   top: 0;
-  width: 40px;
+  width: 44px;
   height: 100%;
   box-sizing: border-box;
-  padding-right: 10px;
+  padding-right: 12px;
   text-align: right;
+  font-size: 0.85em;
+  line-height: 1.88; /* 1.6 line ÷ 0.85 font — keeps numbers on the baseline grid */
   color: var(--gutter-ink);
   background: var(--gutter-bg);
   border-right: 1px solid var(--code-border);

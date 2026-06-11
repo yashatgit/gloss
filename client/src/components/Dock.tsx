@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useReactFlow } from '@xyflow/react';
 import { formatCost } from '@gloss/shared';
 import { FONT_MAX, FONT_MIN, useCanvasStore } from '../state/canvasStore';
 import { docCost } from '../state/cost';
+import { useFocusBranch } from '../canvas/useAnchoredBranches';
 import { SettingsModal } from './SettingsModal';
 
 /**
@@ -18,11 +18,11 @@ export function Dock({ tidy }: { tidy: () => void }) {
   const bumpFontScale = useCanvasStore((s) => s.bumpFontScale);
   const flash = useCanvasStore((s) => s.flash);
   const docNodeId = useCanvasStore((s) => s.nodes.find((n) => n.kind === 'document')?.id);
-  const { fitView } = useReactFlow();
+  const focusNode = useFocusBranch(); // centers at the CURRENT zoom
 
   const focusDocument = () => {
     if (!docNodeId) return;
-    void fitView({ nodes: [{ id: docNodeId }], duration: 350, maxZoom: 1, padding: 0.12 });
+    focusNode(docNodeId);
     flash(docNodeId);
   };
 
