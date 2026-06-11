@@ -824,26 +824,6 @@ input {
   50% { box-shadow: 0 0 0 7px rgba(224, 57, 43, 0); }
 }
 
-/* settings cog (top-right) */
-.settings-cog {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 40;
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-  box-shadow: var(--shadow-sm);
-  color: var(--soft);
-  transition: transform 0.25s ease, color 0.2s ease;
-}
-.settings-cog:hover { color: var(--accent); transform: rotate(40deg); }
 .image-loading {
   display: flex;
   align-items: center;
