@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDictation } from './useDictation';
 
 interface Props {
   /** A text reply is currently streaming (Send becomes Stop). */
@@ -24,6 +25,7 @@ export function Composer({
 }: Props) {
   const [text, setText] = useState('');
   const hasText = text.trim().length > 0;
+  const dictation = useDictation((t) => setText((prev) => (prev ? `${prev} ${t}` : t)));
 
   function submit() {
     if (!hasText || streaming || imageBusy) return;
@@ -54,6 +56,30 @@ export function Composer({
           }
         }}
       />
+      {dictation.supported && (
+        <button
+          className={`mic-button${dictation.listening ? ' listening' : ''}`}
+          onClick={dictation.toggle}
+          disabled={imageBusy}
+          title={dictation.listening ? 'Stop dictation' : 'Dictate with your voice'}
+          aria-label="Dictate"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="9" y="2" width="6" height="12" rx="3" />
+            <path d="M5 11a7 7 0 0 0 14 0" />
+            <line x1="12" y1="18" x2="12" y2="22" />
+          </svg>
+        </button>
+      )}
       {onImage && (
         <button
           className="image-button"

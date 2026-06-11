@@ -38,25 +38,23 @@ export function Thread({
     return () => window.removeEventListener('keydown', onKey);
   }, [zoomSrc]);
 
-  // Follow streaming output ONLY when the user is already at the bottom. If
-  // they scroll up to read, their position is left intact (no yanking down).
-  const stickRef = useRef(true);
-  const onScroll = () => {
-    const el = containerRef.current;
-    if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
-  };
-
+  // Scroll to the bottom only when the user adds a message (so they see what
+  // they just sent). NEVER during streaming — the scroll stays exactly where
+  // it is so the user can read without the content shifting under them.
+  const lastUserCount = useRef(0);
+  const userCount = messages.reduce((n, m) => n + (m.role === 'user' ? 1 : 0), 0);
   useEffect(() => {
-    if (!stickRef.current) return;
+    if (userCount <= lastUserCount.current) return;
+    lastUserCount.current = userCount;
     const raf = requestAnimationFrame(() => {
       const el = containerRef.current;
       if (el) el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(raf);
-  }, [messages.length, streamingText, imageLoading]);
+  }, [userCount]);
 
   return (
-    <div ref={containerRef} className="thread nowheel nodrag" onScroll={onScroll}>
+    <div ref={containerRef} className="thread nowheel nodrag">
       {messages.map((m) => (
         <div key={m.id} className={`msg msg-${m.role}`}>
           {m.role !== 'assistant' ? (

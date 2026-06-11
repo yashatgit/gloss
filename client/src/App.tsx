@@ -5,6 +5,7 @@ import { encodeImage, fileToBase64 } from './api/image';
 import { applyFontScale, applyTheme, useCanvasStore } from './state/canvasStore';
 import { CanvasView } from './canvas/Canvas';
 import { ModelPicker } from './components/ModelPicker';
+import { SettingsButton } from './components/SettingsButton';
 import { navigateHome, navigateToDoc, useDocumentRouting } from './routing';
 
 export default function App() {
@@ -24,7 +25,12 @@ export default function App() {
     applyFontScale(fontScale);
   }, [theme, fontScale]);
 
-  return hasDoc ? <CanvasScreen /> : <HomePage />;
+  return (
+    <>
+      {hasDoc ? <CanvasScreen /> : <HomePage />}
+      <SettingsButton />
+    </>
+  );
 }
 
 function CanvasScreen() {

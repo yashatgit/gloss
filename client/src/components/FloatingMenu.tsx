@@ -3,7 +3,6 @@ import { useReactFlow } from '@xyflow/react';
 import { formatCost } from '@gloss/shared';
 import { FONT_MAX, FONT_MIN, useCanvasStore } from '../state/canvasStore';
 import { docCost } from '../state/cost';
-import { SettingsModal } from './SettingsModal';
 
 /**
  * Single floating action button that pops up a glass menu with all the canvas
@@ -12,7 +11,6 @@ import { SettingsModal } from './SettingsModal';
  */
 export function FloatingMenu({ tidy }: { tidy: () => void }) {
   const [open, setOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const cost = useCanvasStore((s) => docCost(s.nodes, s.doc));
   const theme = useCanvasStore((s) => s.theme);
@@ -46,16 +44,6 @@ export function FloatingMenu({ tidy }: { tidy: () => void }) {
           <span className="fab-cost-label">This document</span>
           <span className="fab-cost-value">{formatCost(cost)}</span>
         </div>
-        <button
-          className="fab-item fab-action"
-          onClick={() => {
-            setSettingsOpen(true);
-            setOpen(false);
-          }}
-        >
-          <span className="fab-ic">⚙</span> AI settings…
-        </button>
-        <div className="fab-sep" />
         <button className="fab-item fab-action" onClick={focusDocument}>
           <span className="fab-ic">⌖</span> Focus document
         </button>
@@ -110,8 +98,6 @@ export function FloatingMenu({ tidy }: { tidy: () => void }) {
           <circle cx="15" cy="16" r="2.4" fill="var(--glass-strong)" />
         </svg>
       </button>
-
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

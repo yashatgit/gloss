@@ -186,14 +186,15 @@ async function consumeStream(
             streaming: { ...s.streaming, [branchId]: (s.streaming[branchId] ?? '') + t },
           })),
         onDone: (message) =>
+          // No tidyNonce bump here — branch nodes are fixed-height, so a reply
+          // doesn't change layout, and re-tidying would jump the canvas while
+          // the user is reading.
           set((s) => ({
             nodes: updateBranch(s.nodes, branchId, (b) => ({
               ...b,
               messages: [...b.messages, message],
             })),
             streaming: clearStreaming(s),
-            // Reply reached final size → re-tidy so it doesn't overlap below.
-            tidyNonce: s.tidyNonce + 1,
           })),
         onError: (e) =>
           set((s) => ({
