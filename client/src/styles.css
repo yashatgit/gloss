@@ -101,8 +101,7 @@ input {
 
 /* ---------- generic glass button ---------- */
 .glass-btn,
-.upload-btn,
-.composer button {
+.upload-btn {
   border: 1px solid var(--border);
   border-radius: 980px;
   background: var(--glass-strong);
@@ -763,14 +762,9 @@ input {
   color: var(--soft);
   font-style: italic;
 }
-.image-button { display: grid; place-items: center; padding: 0 12px; color: var(--soft); }
-.image-button:not(:disabled):hover { color: var(--accent); border-color: var(--accent); }
-.mic-button { display: grid; place-items: center; padding: 0 12px; color: var(--soft); }
-.mic-button:not(:disabled):hover { color: var(--accent); border-color: var(--accent); }
-.mic-button.listening { color: #fff; background: #e0392b; border-color: #e0392b; animation: micPulse 1.3s ease-in-out infinite; }
 @keyframes micPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 57, 43, 0.5); }
-  50% { box-shadow: 0 0 0 6px rgba(224, 57, 43, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 57, 43, 0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(224, 57, 43, 0); }
 }
 
 /* settings cog (top-right) */
@@ -840,26 +834,81 @@ input {
 }
 
 /* composer */
-.composer { display: flex; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--border); }
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
 .composer textarea {
   flex: 1;
   resize: none;
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 10px 14px;
+  border-radius: 20px;
+  padding: 10px 15px;
   background: var(--field);
   font-size: 13px;
+  line-height: 1.45;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
-.composer textarea:focus { outline: none; border-color: var(--accent); }
+.composer textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(29, 111, 224, 0.14);
+}
+/* glow the field while dictating */
+.composer.listening textarea {
+  border-color: #e0392b;
+  box-shadow: 0 0 0 3px rgba(224, 57, 43, 0.16);
+}
+
+/* circular icon buttons (mic / image / send / stop) — iMessage-style */
 .composer button {
-  align-self: flex-end;
-  padding: 9px 16px;
-  background: var(--accent);
-  color: #fff;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
   border: none;
+  background: transparent;
+  color: var(--soft);
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease,
+    box-shadow 0.2s ease;
 }
-.composer button:not(:disabled):hover { background: var(--accent-strong); }
-.stop-button { background: var(--field) !important; color: var(--accent) !important; border: 1px solid var(--accent) !important; }
+.composer button:active { transform: scale(0.92); }
+.mic-button:not(:disabled):hover,
+.image-button:not(:disabled):hover { background: var(--border-soft); color: var(--accent); }
+
+.send-button { background: var(--accent); color: #fff; }
+.send-button:not(:disabled):hover { background: var(--accent-strong); }
+.send-button:disabled { background: var(--border-soft); color: var(--faint); }
+
+.stop-button { color: var(--accent); border: 1.5px solid var(--accent); }
+.stop-button:hover { background: rgba(29, 111, 224, 0.1); }
+
+/* listening state: filled red orb + pulsing ring + live equalizer bars */
+.mic-button.listening {
+  background: #e0392b;
+  color: #fff;
+  animation: micPulse 1.4s ease-in-out infinite;
+}
+.eq { display: flex; align-items: center; gap: 2.5px; height: 16px; }
+.eq span {
+  width: 2.5px;
+  height: 4px;
+  border-radius: 2px;
+  background: currentColor;
+  animation: eqBar 0.9s ease-in-out infinite;
+}
+.eq span:nth-child(2) { animation-delay: 0.15s; }
+.eq span:nth-child(3) { animation-delay: 0.3s; }
+.eq span:nth-child(4) { animation-delay: 0.45s; }
+@keyframes eqBar {
+  0%, 100% { height: 4px; opacity: 0.7; }
+  50% { height: 15px; opacity: 1; }
+}
 
 /* error + regenerate inside a branch */
 .branch-node .error-bar {
