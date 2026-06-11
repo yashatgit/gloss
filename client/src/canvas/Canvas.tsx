@@ -236,19 +236,19 @@ function useCanvasNavigation() {
         dy = 0;
       }
 
-      // Overscroll chaining: if the cursor is over a scrollable node area and a
-      // vertical scroll would stay within its bounds, let the node scroll. Once
-      // it hits the top/bottom — or the gesture is horizontal — keep panning the
-      // canvas, so passing over a node never dead-stops the pan.
+      // A vertically-scrollable node owns vertical wheel — it scrolls its
+      // content and simply stops at its top/bottom (overscroll-behavior:contain
+      // keeps it from spilling into a canvas pan). Only non-scrollable nodes
+      // (short branches) or horizontal gestures pan, so sweeping past a node
+      // never dead-stops the pan.
       const target = e.target as Element | null;
       const scroller = target?.closest('.nowheel') as HTMLElement | null;
-      if (scroller && Math.abs(dy) > Math.abs(dx)) {
-        const canScroll = scroller.scrollHeight - scroller.clientHeight > 1;
-        const atTop = scroller.scrollTop <= 0;
-        const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
-        if (canScroll && ((dy < 0 && !atTop) || (dy > 0 && !atBottom))) {
-          return; // node consumes this scroll
-        }
+      if (
+        scroller &&
+        Math.abs(dy) > Math.abs(dx) &&
+        scroller.scrollHeight - scroller.clientHeight > 1
+      ) {
+        return; // node consumes this scroll
       }
 
       e.preventDefault();

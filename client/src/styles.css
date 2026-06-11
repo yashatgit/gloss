@@ -403,6 +403,7 @@ input {
 
 .node-scroll {
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 6px 50px 40px;
   min-height: 0;
 }
@@ -601,6 +602,7 @@ input {
 .thread {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 8px 18px 18px;
   display: flex;
   flex-direction: column;
