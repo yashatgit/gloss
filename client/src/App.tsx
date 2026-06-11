@@ -1,48 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatCost, type DocumentSummary } from '@reader/shared';
+import { type DocumentSummary } from '@reader/shared';
 import * as api from './api/client';
 import { encodeImage, fileToBase64 } from './api/image';
-import { useCanvasStore } from './state/canvasStore';
-import { docCost } from './state/cost';
+import { applyFontScale, applyTheme, useCanvasStore } from './state/canvasStore';
 import { CanvasView } from './canvas/Canvas';
 import { ModelPicker } from './components/ModelPicker';
-import { DisplayControls } from './components/DisplayControls';
 import { navigateHome, navigateToDoc, useDocumentRouting } from './routing';
 
 export default function App() {
   const hasDoc = useCanvasStore((s) => s.doc !== null);
   const loadConfig = useCanvasStore((s) => s.loadConfig);
+  const theme = useCanvasStore((s) => s.theme);
+  const fontScale = useCanvasStore((s) => s.fontScale);
   useDocumentRouting();
 
   useEffect(() => {
     void loadConfig().catch(() => undefined);
   }, [loadConfig]);
 
-  return (
-    <>
-      {hasDoc ? <CanvasScreen /> : <HomePage />}
-      <DisplayControls />
-    </>
-  );
+  // Apply persisted display prefs to <html> (works on both home and canvas).
+  useEffect(() => {
+    applyTheme(theme);
+    applyFontScale(fontScale);
+  }, [theme, fontScale]);
+
+  return hasDoc ? <CanvasScreen /> : <HomePage />;
 }
 
 function CanvasScreen() {
   const title = useCanvasStore((s) => s.doc?.title ?? '');
   const globalError = useCanvasStore((s) => s.errors.global);
-  const total = useCanvasStore((s) => docCost(s.nodes, s.doc));
   return (
     <div className="canvas-screen">
       <div className="top-bar">
         <button onClick={navigateHome}>← Documents</button>
         <strong>{title}</strong>
-        <span
-          className="doc-cost"
-          title="Estimated total spent across all branches in this document"
-        >
-          {formatCost(total)} <span className="doc-cost-label">this doc</span>
-        </span>
-        <span className="top-bar-spacer" />
-        <ModelPicker />
       </div>
       {globalError && <div className="error-bar">{globalError}</div>}
       <CanvasView />

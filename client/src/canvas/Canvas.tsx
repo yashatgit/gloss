@@ -3,7 +3,6 @@ import {
   Background,
   Controls,
   MiniMap,
-  Panel,
   ReactFlow,
   ReactFlowProvider,
   useNodesState,
@@ -19,6 +18,7 @@ import { tidyPositions, type LayoutNode } from './layout';
 import { DocumentNodeView } from './DocumentNode';
 import { BranchNodeView } from './BranchNode';
 import { SelectionOverlay } from './SelectionOverlay';
+import { FloatingMenu } from '../components/FloatingMenu';
 
 // Must be module-level constants — a new object per render makes React Flow
 // remount every node.
@@ -118,8 +118,8 @@ function CanvasInner() {
         <Controls showInteractive={false} />
         <MiniMap pannable zoomable />
         <FocusController />
-        <CanvasPanel tidy={tidy} />
       </ReactFlow>
+      <FloatingMenu tidy={tidy} />
     </div>
   );
 }
@@ -234,27 +234,4 @@ function FocusController() {
   }, [focusTarget, fitView, clearFocus]);
 
   return null;
-}
-
-function CanvasPanel({ tidy }: { tidy: () => void }) {
-  const docNodeId = useCanvasStore((s) => s.nodes.find((n) => n.kind === 'document')?.id);
-  const flash = useCanvasStore((s) => s.flash);
-  const { fitView } = useReactFlow();
-
-  const focusDocument = () => {
-    if (!docNodeId) return;
-    void fitView({ nodes: [{ id: docNodeId }], duration: 350, maxZoom: 1, padding: 0.12 });
-    flash(docNodeId);
-  };
-
-  return (
-    <Panel position="top-left" className="canvas-panel">
-      <button onClick={focusDocument} title="Center and zoom to the document">
-        Focus document
-      </button>
-      <button onClick={tidy} title="Auto-arrange branches by depth">
-        Tidy layout
-      </button>
-    </Panel>
-  );
 }

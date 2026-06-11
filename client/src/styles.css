@@ -101,8 +101,6 @@ input {
 
 /* ---------- generic glass button ---------- */
 .glass-btn,
-.canvas-panel button,
-.display-controls .dc-btn,
 .upload-btn,
 .composer button {
   border: 1px solid var(--border);
@@ -115,8 +113,7 @@ input {
   font-weight: 500;
   transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
-.canvas-panel button:hover,
-.display-controls .dc-btn:not(:disabled):hover {
+.glass-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -679,42 +676,114 @@ input {
 .selection-toolbar button:hover { background: var(--border-soft); }
 
 /* ============================================================
-   Canvas controls + display controls
+   Floating action menu (consolidated canvas controls)
    ============================================================ */
-.canvas-panel { display: flex; gap: 8px; }
-.canvas-panel button { box-shadow: var(--shadow-sm); }
+.fab-wrap { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 45; }
 
-.display-controls {
-  position: fixed;
-  bottom: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px;
+.fab {
+  position: relative;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   border: 1px solid var(--border);
-  border-radius: 980px;
   background: var(--glass-strong);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   backdrop-filter: blur(30px) saturate(180%);
   box-shadow: var(--shadow);
-}
-.display-controls .dc-btn {
-  width: 34px;
-  height: 34px;
-  padding: 0;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  font-size: 15px;
+  color: var(--ink);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease,
+    color 0.2s ease;
 }
-.display-controls .dc-btn:not(:disabled):hover { background: var(--border-soft); }
-.dc-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
-.dc-readout { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--soft); min-width: 38px; text-align: center; }
+.fab:hover { transform: scale(1.06); }
+.fab:active { transform: scale(0.96); }
+.fab.open { background: var(--accent); color: #fff; transform: rotate(90deg); }
+.fab.open circle { fill: var(--accent) !important; }
+
+.fab-overlay { position: fixed; inset: 0; z-index: 1; }
+
+.fab-menu {
+  position: absolute;
+  bottom: 66px;
+  left: 50%;
+  width: 300px;
+  margin-left: -150px;
+  z-index: 2;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: var(--shadow);
+  transform-origin: bottom center;
+  transform: translateY(12px) scale(0.92);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+.fab-menu.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+
+/* staggered item reveal */
+.fab-item {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.fab-menu.open .fab-item { opacity: 1; transform: none; }
+.fab-menu.open .fab-item:nth-child(1) { transition-delay: 0.03s; }
+.fab-menu.open .fab-item:nth-child(2) { transition-delay: 0.06s; }
+.fab-menu.open .fab-item:nth-child(4) { transition-delay: 0.09s; }
+.fab-menu.open .fab-item:nth-child(5) { transition-delay: 0.12s; }
+.fab-menu.open .fab-item:nth-child(7) { transition-delay: 0.15s; }
+
+.fab-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; }
+.fab-row.cost { justify-content: space-between; }
+.fab-cost-label { font-size: 13px; color: var(--soft); }
+.fab-cost-value { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.fab-menu .model-picker { width: 100%; max-width: none; }
+
+.fab-sep { height: 1px; background: var(--border); margin: 6px 8px; }
+
+.fab-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--ink);
+  text-align: left;
+}
+.fab-action:hover { background: var(--border-soft); }
+.fab-ic { width: 18px; text-align: center; color: var(--accent); font-size: 15px; }
+
+.fab-row.appearance { justify-content: space-between; }
+.fab-pill {
+  border: 1px solid var(--border);
+  background: var(--field);
+  border-radius: 980px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.fab-pill:hover { border-color: var(--accent); color: var(--accent); }
+.fab-font { display: flex; align-items: center; gap: 2px; }
+.fab-font button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  color: var(--ink);
+}
+.fab-font button:not(:disabled):hover { background: var(--border-soft); }
+.fab-font-readout { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--soft); min-width: 38px; text-align: center; }
 
 /* ============================================================
    React Flow overrides
