@@ -2,21 +2,32 @@
 //
 // Dev:  GLOSS_DEV_URL is set → load the Vite dev server (which proxies /api to
 //       the API server you started with `pnpm dev`). Electron is just the window.
-// Prod: spawn the bundled API server (desktop/dist/server.cjs) using Electron's
-//       Node, pointing GLOSS_DATA_DIR at the per-user app data and serving the
-//       built client from client/dist, then load it from one local origin.
+// Prod: pick a FREE port (so it never collides with a running `pnpm dev`), spawn
+//       the bundled API server (Electron's Node) with the data dir at the
+//       per-user app data and the built client served from one origin, then load it.
 
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('node:path');
 const http = require('node:http');
+const net = require('node:net');
 const { spawn } = require('node:child_process');
 
 const DEV_URL = process.env.GLOSS_DEV_URL;
-const PORT = Number(process.env.PORT || 8787);
 // Match the web app's data dir name so documents + saved keys are shared
 // (resolveDataDir uses "gloss" → ~/Library/Application Support/gloss on macOS).
 app.setName('gloss');
 let serverProc = null;
+
+function getFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+  });
+}
 
 function ping(url) {
   return new Promise((resolve) => {
@@ -36,13 +47,12 @@ async function waitForServer(url, timeoutMs = 20000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (await ping(url)) return;
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 250));
   }
   throw new Error('API server did not become healthy in time');
 }
 
-async function startServer() {
-  if (DEV_URL) return; // dev: API runs under `pnpm dev`
+async function startServer(port) {
   // Everything the packaged app needs lives under desktop/ (server.mjs + the
   // copied client build), so paths are relative to __dirname — works both from
   // the repo and from inside Gloss.app/Contents/Resources/app.
@@ -51,16 +61,16 @@ async function startServer() {
     env: {
       ...process.env,
       ELECTRON_RUN_AS_NODE: '1',
-      PORT: String(PORT),
+      PORT: String(port),
       GLOSS_DATA_DIR: app.getPath('userData'),
       GLOSS_SERVE_CLIENT: path.join(__dirname, 'dist', 'client'),
     },
     stdio: 'inherit',
   });
-  await waitForServer(`http://127.0.0.1:${PORT}/api/health`);
+  await waitForServer(`http://127.0.0.1:${port}/api/health`);
 }
 
-async function createWindow() {
+async function createWindow(url) {
   const win = new BrowserWindow({
     width: 1440,
     height: 940,
@@ -71,22 +81,27 @@ async function createWindow() {
     webPreferences: { contextIsolation: true },
   });
   // Open external links in the user's browser, not inside the app.
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+  win.webContents.setWindowOpenHandler(({ url: u }) => {
+    shell.openExternal(u);
     return { action: 'deny' };
   });
-  await win.loadURL(DEV_URL || `http://127.0.0.1:${PORT}`);
+  await win.loadURL(url);
 }
 
 app.whenReady().then(async () => {
-  try {
-    await startServer();
-  } catch (err) {
-    console.error('[gloss] server start failed:', err);
+  let url = DEV_URL;
+  if (!DEV_URL) {
+    const port = await getFreePort();
+    url = `http://127.0.0.1:${port}`;
+    try {
+      await startServer(port);
+    } catch (err) {
+      console.error('[gloss] server start failed:', err);
+    }
   }
-  await createWindow();
+  await createWindow(url);
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) void createWindow(url);
   });
 });
 
