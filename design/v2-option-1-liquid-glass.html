@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gloss — V2 Option 1 · Liquid Glass</title>
+<style>
+  :root {
+    --ink: #1c1c21; --soft: #6f6f78; --faint: #a6a6b0;
+    --accent: #0a6cff; --accent-2: #7c5cff;
+    --glass: rgba(255,255,255,0.42); --glass-strong: rgba(255,255,255,0.66);
+    --hairline: rgba(255,255,255,0.65);
+    --shadow: 0 32px 80px rgba(40,50,90,0.18), 0 6px 18px rgba(40,50,90,0.08);
+    --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    --font-read: ui-serif, 'New York', Georgia, serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: var(--font-ui); color: var(--ink); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; background: #eef0f6; }
+
+  /* living mesh backdrop */
+  .mesh { position: fixed; inset: -20%; z-index: 0; filter: blur(70px) saturate(130%); }
+  .blob { position: absolute; border-radius: 50%; opacity: .55; animation: drift 26s ease-in-out infinite alternate; }
+  .b1 { width: 46vw; height: 46vw; left: -8%; top: -12%; background: #ffd9c2; }
+  .b2 { width: 42vw; height: 42vw; right: -6%; top: 8%; background: #c5d8ff; animation-delay: -8s; }
+  .b3 { width: 38vw; height: 38vw; left: 28%; bottom: -18%; background: #e7d4ff; animation-delay: -16s; }
+  .b4 { width: 24vw; height: 24vw; right: 24%; bottom: 6%; background: #c9f3e4; animation-delay: -4s; }
+  @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(4vw,3vh) scale(1.12); } }
+
+  .stage { position: relative; z-index: 1; height: 100vh; }
+  svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .flow { stroke-dasharray: 7 9; animation: flow 1.6s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -16; } }
+
+  /* glass card with specular rim */
+  .card { position: absolute; border-radius: 28px; background: var(--glass);
+    -webkit-backdrop-filter: blur(36px) saturate(180%); backdrop-filter: blur(36px) saturate(180%);
+    box-shadow: var(--shadow); overflow: hidden; }
+  .card::before { content:''; position: absolute; inset: 0; border-radius: 28px; padding: 1.2px; pointer-events:none;
+    background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,.25) 38%, rgba(120,140,255,.25) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  .card-head { display: flex; align-items: center; gap: 10px; padding: 15px 22px; }
+  .chip { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .head-title { font-size: 13px; color: var(--soft); font-style: italic; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill-cost { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent);
+    background: rgba(10,108,255,.1); padding: 3px 9px; border-radius: 99px; }
+  .icon { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--faint); cursor: pointer; font-size: 13px; }
+  .icon:hover { background: rgba(255,255,255,.55); color: var(--ink); }
+
+  .doc { left: 64px; top: 96px; width: 600px; background: var(--glass-strong); }
+  .doc .body { padding: 8px 48px 44px; font-family: var(--font-read); font-size: 19px; line-height: 1.72; max-height: 56vh; overflow-y: auto; }
+  .doc h1 { font-size: 38px; font-weight: 600; letter-spacing: -.02em; line-height: 1.12; margin: 14px 0 20px; }
+  mark { background: linear-gradient(180deg, transparent 58%, rgba(255,200,87,.85) 58%); border-radius: 2px; padding: 0 1px; cursor: pointer; }
+  mark.live { background: linear-gradient(180deg, transparent 58%, rgba(10,108,255,.3) 58%); }
+
+  .branch { left: 780px; top: 150px; width: 396px; }
+  .thread { padding: 4px 18px 14px; display: flex; flex-direction: column; gap: 14px; max-height: 320px; overflow-y: auto; }
+  .msg-user { align-self: flex-end; color: #fff; padding: 10px 16px; max-width: 82%; font-size: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-radius: 20px 20px 6px 20px;
+    box-shadow: 0 8px 22px rgba(10,108,255,.35); }
+  .msg-ai { font-size: 14.5px; line-height: 1.62; }
+  .usage { margin-top: 9px; font-size: 10.5px; color: var(--faint); font-family: ui-monospace, Menlo, monospace; }
+
+  .composer { display: flex; align-items: center; gap: 7px; margin: 10px 14px 14px; padding: 6px 6px 6px 16px;
+    background: rgba(255,255,255,.6); border-radius: 99px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.8), 0 2px 8px rgba(40,50,90,.06); }
+  .composer input { flex: 1; border: none; background: none; font: inherit; font-size: 13.5px; outline: none; color: var(--ink); }
+  .cbtn { width: 34px; height: 34px; border: none; border-radius: 50%; display: grid; place-items: center; background: transparent; color: var(--soft); cursor: pointer; }
+  .cbtn:hover { background: rgba(10,108,255,.1); color: var(--accent); }
+  .cbtn.send { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; box-shadow: 0 6px 16px rgba(10,108,255,.4); }
+
+  /* floating glass dock */
+  .dock { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 5;
+    display: flex; align-items: center; gap: 4px; padding: 8px; border-radius: 24px;
+    background: var(--glass-strong); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+    box-shadow: var(--shadow), inset 0 0 0 1px var(--hairline); }
+  .dock button { width: 46px; height: 46px; border: none; border-radius: 16px; background: transparent;
+    display: grid; place-items: center; font-size: 19px; color: var(--ink); cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s; }
+  .dock button:hover { transform: translateY(-8px) scale(1.18); background: rgba(255,255,255,.7); }
+  .dock .sep { width: 1px; height: 26px; background: rgba(0,0,0,.1); margin: 0 5px; }
+  .dock .cost { font-size: 12px; font-weight: 700; color: var(--accent); padding: 0 12px; font-variant-numeric: tabular-nums; }
+
+  .topbar { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: flex; align-items: center; gap: 14px; height: 52px; padding: 0 22px; border-radius: 99px;
+    background: var(--glass-strong); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+    box-shadow: var(--shadow), inset 0 0 0 1px var(--hairline); }
+  .back { color: var(--accent); font-size: 14px; font-weight: 500; cursor: pointer; }
+  .crumb { color: var(--faint); }
+  .title { font-family: var(--font-read); font-size: 16.5px; font-weight: 600; letter-spacing: -.01em; }
+
+  .seltool { position: absolute; left: 300px; top: 470px; display: flex; gap: 2px; padding: 5px; border-radius: 99px;
+    background: rgba(28,28,33,.92); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+  .seltool button { border: none; background: transparent; color: #f3f3f6; font: inherit; font-size: 13px; font-weight: 500; padding: 8px 15px; border-radius: 99px; cursor: pointer; }
+  .seltool button:first-child { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .seltool button:hover:not(:first-child) { background: rgba(255,255,255,.14); }
+
+  .ribbon { position: fixed; bottom: 22px; right: 22px; z-index: 9; font-size: 12px; font-weight: 700; padding: 9px 18px; border-radius: 99px;
+    background: var(--glass-strong); box-shadow: var(--shadow); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+</style>
+</head>
+<body>
+  <div class="mesh"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
+  <div class="ribbon">V2 · 1 — Liquid Glass</div>
+
+  <div class="topbar">
+    <span class="back">‹ Library</span><span class="crumb">/</span>
+    <span class="title">Attention Is All You Need</span>
+  </div>
+
+  <div class="stage">
+    <svg class="edges">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#0a6cff"/><stop offset="1" stop-color="#7c5cff"/></linearGradient></defs>
+      <path class="flow" d="M 664 430 C 730 430, 716 300, 780 300" stroke="url(#g)" stroke-width="2.5" fill="none" opacity=".8"/>
+    </svg>
+
+    <div class="card doc">
+      <div class="card-head"><span class="chip">Document</span><span class="head-title">Attention Is All You Need</span><span class="icon">⤢</span></div>
+      <div class="body">
+        <h1>Attention Is All You Need</h1>
+        <p>The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms.</p>
+        <p style="margin-top:18px"><mark>Self-attention</mark>, sometimes called intra-attention, is an attention mechanism relating different positions of a single sequence in order to compute a representation of the sequence.</p>
+      </div>
+    </div>
+
+    <div class="seltool"><button>Explain</button><button>More context</button><button>Ask…</button><button>🖼</button></div>
+
+    <div class="card branch">
+      <div class="card-head"><span class="chip">Branch</span><span class="head-title">“self-attention”</span><span class="pill-cost">$0.0012</span><span class="icon">▾</span><span class="icon">×</span></div>
+      <div class="thread">
+        <div class="msg-user">Explain this.</div>
+        <div class="msg-ai">Self-attention lets every position in a sequence look at every other position at once — each word weighs how much the others matter to it, in parallel rather than step-by-step.<div class="usage">Claude Sonnet 4.6 · 228→80 · ⚡6.6k cached · $0.0008</div></div>
+      </div>
+      <div class="composer">
+        <input placeholder="Ask a follow-up…" />
+        <button class="cbtn" title="Dictate">🎙</button>
+        <button class="cbtn" title="Illustrate">🖼</button>
+        <button class="cbtn send" title="Send">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dock">
+    <button title="Focus document">⌖</button>
+    <button title="Tidy layout">⊞</button>
+    <button title="Dark mode">☾</button>
+    <button title="Text size">Aa</button>
+    <span class="sep"></span>
+    <button title="AI settings">⚙</button>
+    <span class="cost">$0.0075</span>
+  </div>
+</body>
+</html>

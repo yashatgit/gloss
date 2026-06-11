@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gloss — V2 Option 2 · Atelier</title>
+<style>
+  :root {
+    --paper: #f6f1e7; --sheet: #fbf8f1; --ink: #2a241c; --soft: #7b7163; --faint: #a99e8d;
+    --thread: #b3402e; --marker: rgba(244, 203, 99, .55); --rule: rgba(106, 90, 65, .09);
+    --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    --font-read: 'Iowan Old Style', 'New York', ui-serif, Georgia, serif;
+    --shadow: 0 18px 50px rgba(80, 60, 30, .16), 0 3px 10px rgba(80, 60, 30, .08);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: var(--font-ui); color: var(--ink); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(1200px 800px at 80% -10%, #fdf8ec 0%, transparent 60%),
+      var(--paper); }
+  /* paper grain */
+  body::after { content: ''; position: fixed; inset: 0; pointer-events: none; opacity: .5; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 0 0.32 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  .stage { position: relative; height: 100vh; }
+  svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  /* the document: a sheet of paper */
+  .sheet { position: absolute; left: 70px; top: 92px; width: 620px; background: var(--sheet);
+    border-radius: 4px; box-shadow: var(--shadow); }
+  .sheet::before { content: ''; position: absolute; inset: 0; border-radius: 4px; pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(106,90,65,.12), inset 0 1.5px 0 rgba(255,255,255,.9); }
+  .sheet-head { display: flex; align-items: baseline; gap: 12px; padding: 22px 48px 0; }
+  .folio { font-family: var(--font-read); font-style: italic; font-size: 13px; color: var(--faint); }
+  .sheet .body { padding: 6px 52px 48px; font-family: var(--font-read); font-size: 19.5px; line-height: 1.74;
+    max-height: 56vh; overflow-y: auto;
+    background-image: linear-gradient(var(--rule) 1px, transparent 1px);
+    background-size: 100% calc(19.5px * 1.74); background-position: 0 14px; background-origin: content-box; }
+  .sheet h1 { font-size: 40px; font-weight: 600; line-height: 1.12; letter-spacing: -.015em; margin: 16px 0 22px; }
+  .sheet h1::after { content: ''; display: block; width: 64px; height: 3px; margin-top: 14px; background: var(--thread); border-radius: 2px; }
+  .dropcap::first-letter { font-size: 3.1em; float: left; line-height: .85; padding: 4px 8px 0 0; font-weight: 600; color: var(--thread); }
+  mark { background: var(--marker); border-radius: 2px; padding: 0 2px; cursor: pointer; box-decoration-break: clone; }
+  sup.fn { color: var(--thread); font-weight: 700; font-family: var(--font-ui); font-size: .6em; cursor: pointer; }
+
+  /* branches: pinned index cards */
+  .note { position: absolute; width: 380px; background: #fffdf6; border-radius: 3px; box-shadow: var(--shadow); transform: rotate(.8deg); }
+  .note::before { content: ''; position: absolute; inset: 0; border-radius: 3px; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(106,90,65,.14); }
+  .note .pin { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: 16px; height: 16px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #e8604c, #9c2c1c); box-shadow: 0 3px 6px rgba(0,0,0,.3); }
+  .note-head { display: flex; align-items: center; gap: 8px; padding: 17px 18px 8px; }
+  .note-kind { font-family: var(--font-read); font-style: italic; font-size: 14px; color: var(--thread); }
+  .note-quote { font-size: 12px; color: var(--soft); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note .x { color: var(--faint); cursor: pointer; }
+  .thread-list { padding: 4px 18px 12px; display: flex; flex-direction: column; gap: 13px; max-height: 300px; overflow-y: auto; }
+  .q { font-family: var(--font-ui); font-size: 13px; font-weight: 600; color: var(--ink); padding-left: 10px; border-left: 3px solid var(--thread); }
+  .a { font-family: var(--font-read); font-size: 15.5px; line-height: 1.62; }
+  .usage { font-size: 10.5px; color: var(--faint); font-family: ui-monospace, Menlo, monospace; margin-top: 8px; }
+
+  .composer { display: flex; align-items: center; gap: 8px; margin: 6px 14px 14px; padding: 9px 8px 9px 14px;
+    border: 1px solid rgba(106,90,65,.22); border-radius: 6px; background: #fff; }
+  .composer input { flex: 1; border: none; outline: none; font: inherit; font-size: 13px; background: none; color: var(--ink); }
+  .cbtn { width: 30px; height: 30px; border: none; border-radius: 5px; background: transparent; display: grid; place-items: center; color: var(--soft); cursor: pointer; font-size: 14px; }
+  .cbtn:hover { background: var(--paper); color: var(--thread); }
+  .cbtn.send { background: var(--ink); color: var(--sheet); }
+
+  /* red thread connection */
+  .thread-path { filter: drop-shadow(0 2px 2px rgba(140,40,20,.25)); }
+
+  /* toolbar = brass plate */
+  .seltool { position: absolute; left: 300px; top: 470px; display: flex; gap: 0; border-radius: 6px; overflow: hidden;
+    box-shadow: var(--shadow); border: 1px solid rgba(106,90,65,.3); }
+  .seltool button { border: none; background: #fffdf6; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink);
+    padding: 10px 16px; cursor: pointer; border-right: 1px solid rgba(106,90,65,.16); }
+  .seltool button:last-child { border-right: none; }
+  .seltool button:first-child { color: var(--thread); font-weight: 600; }
+  .seltool button:hover { background: var(--paper); }
+
+  /* top: letterpress masthead */
+  .masthead { position: fixed; top: 0; left: 0; right: 0; z-index: 5; display: flex; align-items: baseline; gap: 18px;
+    padding: 18px 36px 14px; border-bottom: 1px solid rgba(106,90,65,.18);
+    background: color-mix(in srgb, var(--paper) 88%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  .wordmark { font-family: var(--font-read); font-weight: 700; font-size: 21px; letter-spacing: .01em; }
+  .wordmark i { color: var(--thread); }
+  .mast-title { font-family: var(--font-read); font-style: italic; font-size: 15px; color: var(--soft); flex: 1; }
+  .mast-cost { font-size: 12.5px; font-weight: 600; color: var(--thread); font-variant-numeric: tabular-nums; }
+  .mast-btn { font-size: 13px; color: var(--soft); cursor: pointer; }
+
+  /* bottom tool tray: drafting instruments */
+  .tray { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; gap: 2px;
+    border: 1px solid rgba(106,90,65,.28); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); }
+  .tray button { border: none; background: #fffdf6; width: 48px; height: 44px; display: grid; place-items: center;
+    font-size: 17px; color: var(--ink); cursor: pointer; border-right: 1px solid rgba(106,90,65,.14); }
+  .tray button:last-child { border-right: none; }
+  .tray button:hover { background: var(--paper); color: var(--thread); }
+
+  .ribbon { position: fixed; bottom: 20px; right: 20px; z-index: 9; font-size: 12px; font-weight: 700; padding: 9px 16px;
+    background: var(--ink); color: var(--sheet); border-radius: 4px; box-shadow: var(--shadow); }
+</style>
+</head>
+<body>
+  <div class="ribbon">V2 · 2 — Atelier</div>
+
+  <div class="masthead">
+    <span class="wordmark">Gloss<i>.</i></span>
+    <span class="mast-title">Attention Is All You Need</span>
+    <span class="mast-cost">$0.0075 this folio</span>
+    <span class="mast-btn">⚙ Settings</span>
+  </div>
+
+  <div class="stage">
+    <svg class="edges">
+      <path class="thread-path" d="M 690 432 C 760 432, 750 308, 818 300" stroke="#b3402e" stroke-width="1.8" fill="none" stroke-dasharray="1 0"/>
+      <circle cx="690" cy="432" r="4" fill="#b3402e"/>
+      <circle cx="818" cy="300" r="4" fill="#b3402e"/>
+    </svg>
+
+    <div class="sheet">
+      <div class="sheet-head"><span class="folio">Folio I · imported June 11, 2026</span></div>
+      <div class="body">
+        <h1>Attention Is All You Need</h1>
+        <p class="dropcap">The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms.</p>
+        <p style="margin-top:20px"><mark>Self-attention</mark><sup class="fn">1</sup>, sometimes called intra-attention, is an attention mechanism relating different positions of a single sequence in order to compute a representation of the sequence.</p>
+      </div>
+    </div>
+
+    <div class="seltool"><button>Explain</button><button>Context</button><button>Ask…</button><button>Illustrate</button></div>
+
+    <div class="note" style="left: 818px; top: 268px;">
+      <div class="pin"></div>
+      <div class="note-head"><span class="note-kind">Note ¹</span><span class="note-quote">on “self-attention”</span><span class="x">×</span></div>
+      <div class="thread-list">
+        <div class="q">Explain this.</div>
+        <div class="a">Self-attention lets every position in a sequence look at every other position at once — each word weighs how much the others matter to it, in parallel rather than step-by-step.<div class="usage">Claude Sonnet 4.6 · 228→80 · $0.0008</div></div>
+      </div>
+      <div class="composer">
+        <input placeholder="Ask a follow-up…" />
+        <button class="cbtn">🎙</button><button class="cbtn">🖼</button><button class="cbtn send">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tray">
+    <button title="Focus document">⌖</button>
+    <button title="Tidy layout">⊞</button>
+    <button title="Dark mode">☾</button>
+    <button title="Text size">Aa</button>
+    <button title="AI settings">⚙</button>
+  </div>
+</body>
+</html>

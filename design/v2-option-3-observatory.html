@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gloss — V2 Option 3 · Observatory</title>
+<style>
+  :root {
+    --bg: #07080f; --panel: rgba(18, 21, 34, .78); --panel-2: rgba(24, 28, 44, .85);
+    --ink: #eef0fa; --soft: #9aa1bd; --faint: #5d6480;
+    --cyan: #46e1c4; --violet: #8b7bff; --blue: #3aa0ff;
+    --border: rgba(255,255,255,.09);
+    --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    --font-read: ui-serif, 'New York', Georgia, serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: var(--font-ui); color: var(--ink); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(900px 600px at 75% -10%, rgba(139,123,255,.18), transparent 55%),
+      radial-gradient(800px 700px at -5% 100%, rgba(70,225,196,.12), transparent 55%),
+      radial-gradient(600px 500px at 45% 50%, rgba(58,160,255,.07), transparent 60%),
+      var(--bg); }
+  /* starfield */
+  body::before { content:''; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      radial-gradient(1.4px 1.4px at 12% 22%, rgba(255,255,255,.6) 50%, transparent 51%),
+      radial-gradient(1px 1px at 32% 70%, rgba(255,255,255,.4) 50%, transparent 51%),
+      radial-gradient(1.7px 1.7px at 58% 14%, rgba(255,255,255,.5) 50%, transparent 51%),
+      radial-gradient(1px 1px at 72% 48%, rgba(255,255,255,.35) 50%, transparent 51%),
+      radial-gradient(1.3px 1.3px at 88% 78%, rgba(255,255,255,.5) 50%, transparent 51%),
+      radial-gradient(1px 1px at 45% 90%, rgba(255,255,255,.3) 50%, transparent 51%); }
+
+  .stage { position: relative; height: 100vh; }
+  svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .glow-edge { filter: drop-shadow(0 0 6px rgba(70,225,196,.7)); stroke-dasharray: 6 8; animation: flow 1.5s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -14; } }
+
+  /* luminous panel with gradient border */
+  .panel { position: absolute; border-radius: 20px; background: var(--panel);
+    -webkit-backdrop-filter: blur(28px) saturate(140%); backdrop-filter: blur(28px) saturate(140%);
+    box-shadow: 0 30px 90px rgba(0,0,0,.6); }
+  .panel::before { content:''; position: absolute; inset: 0; border-radius: 20px; padding: 1px; pointer-events: none;
+    background: linear-gradient(140deg, rgba(70,225,196,.7), rgba(255,255,255,.12) 30%, rgba(139,123,255,.55) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  .panel-head { display: flex; align-items: center; gap: 10px; padding: 14px 20px; }
+  .kind { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    background: linear-gradient(90deg, var(--cyan), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ptitle { font-size: 13px; color: var(--soft); font-style: italic; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 10.5px; color: var(--cyan);
+    border: 1px solid rgba(70,225,196,.35); padding: 3px 8px; border-radius: 6px; background: rgba(70,225,196,.08); }
+  .icon { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: var(--faint); cursor: pointer; }
+  .icon:hover { background: rgba(255,255,255,.08); color: var(--ink); }
+
+  .doc { left: 64px; top: 96px; width: 620px; background: var(--panel-2); }
+  .doc .body { padding: 6px 46px 42px; font-family: var(--font-read); font-size: 19px; line-height: 1.74; max-height: 56vh; overflow-y: auto; color: #dfe3f5; }
+  .doc h1 { font-size: 38px; font-weight: 600; line-height: 1.12; letter-spacing: -.015em; margin: 14px 0 20px; color: #fff;
+    text-shadow: 0 0 30px rgba(139,123,255,.35); }
+  mark { background: rgba(70,225,196,.16); color: #7ff0da; border-bottom: 1.5px solid var(--cyan); border-radius: 2px; padding: 0 2px; cursor: pointer;
+    text-shadow: 0 0 12px rgba(70,225,196,.5); }
+
+  .branch { left: 800px; top: 150px; width: 396px; }
+  .thread { padding: 2px 18px 12px; display: flex; flex-direction: column; gap: 14px; max-height: 320px; overflow-y: auto; }
+  .msg-user { align-self: flex-end; color: #061018; font-weight: 500; padding: 10px 16px; max-width: 82%; font-size: 14px;
+    background: linear-gradient(135deg, var(--cyan), #35c3e8); border-radius: 18px 18px 5px 18px; box-shadow: 0 8px 26px rgba(70,225,196,.3); }
+  .msg-ai { font-size: 14.5px; line-height: 1.62; color: #dfe3f5; }
+  .usage { margin-top: 9px; font-size: 10.5px; color: var(--faint); font-family: ui-monospace, Menlo, monospace; }
+
+  .composer { display: flex; align-items: center; gap: 7px; margin: 8px 14px 14px; padding: 6px 6px 6px 16px;
+    background: rgba(0,0,0,.35); border-radius: 99px; box-shadow: inset 0 0 0 1px var(--border); }
+  .composer input { flex: 1; border: none; background: none; font: inherit; font-size: 13.5px; outline: none; color: var(--ink); }
+  .composer input::placeholder { color: var(--faint); }
+  .cbtn { width: 34px; height: 34px; border: none; border-radius: 50%; display: grid; place-items: center; background: transparent; color: var(--soft); cursor: pointer; }
+  .cbtn:hover { background: rgba(70,225,196,.12); color: var(--cyan); }
+  .cbtn.send { background: linear-gradient(135deg, var(--cyan), var(--violet)); color: #07121a; font-weight: 700; box-shadow: 0 0 18px rgba(70,225,196,.45); }
+
+  .seltool { position: absolute; left: 300px; top: 474px; display: flex; gap: 2px; padding: 5px; border-radius: 12px;
+    background: rgba(10,12,22,.92); box-shadow: 0 0 0 1px var(--border), 0 16px 50px rgba(0,0,0,.6), 0 0 26px rgba(139,123,255,.25); }
+  .seltool button { border: none; background: transparent; color: var(--ink); font: inherit; font-size: 13px; font-weight: 500; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+  .seltool button:first-child { background: linear-gradient(135deg, var(--cyan), var(--violet)); color: #06101a; font-weight: 700; }
+  .seltool button:hover:not(:first-child) { background: rgba(255,255,255,.1); }
+
+  .topbar { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: flex; align-items: center; gap: 14px; height: 50px; padding: 0 22px; border-radius: 14px;
+    background: rgba(12,14,26,.8); -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px);
+    box-shadow: 0 0 0 1px var(--border), 0 18px 50px rgba(0,0,0,.55); }
+  .back { color: var(--cyan); font-size: 14px; cursor: pointer; }
+  .title { font-family: var(--font-read); font-size: 16px; font-weight: 600; }
+  .sep { width: 1px; height: 20px; background: var(--border); }
+
+  .dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: flex; align-items: center; gap: 3px; padding: 7px; border-radius: 18px;
+    background: rgba(12,14,26,.85); -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px);
+    box-shadow: 0 0 0 1px var(--border), 0 18px 50px rgba(0,0,0,.55); }
+  .dock button { width: 44px; height: 44px; border: none; border-radius: 12px; background: transparent; color: var(--soft);
+    display: grid; place-items: center; font-size: 18px; cursor: pointer; transition: all .18s; }
+  .dock button:hover { color: var(--cyan); background: rgba(70,225,196,.1); box-shadow: 0 0 16px rgba(70,225,196,.25); transform: translateY(-3px); }
+  .dock .cost { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--cyan); padding: 0 12px; }
+
+  .ribbon { position: fixed; bottom: 20px; right: 20px; z-index: 9; font-size: 12px; font-weight: 700; padding: 9px 16px; border-radius: 10px;
+    background: rgba(12,14,26,.9); color: var(--ink); box-shadow: 0 0 0 1px var(--border), 0 0 24px rgba(139,123,255,.3); }
+</style>
+</head>
+<body>
+  <div class="ribbon">V2 · 3 — Observatory</div>
+
+  <div class="topbar">
+    <span class="back">‹ Library</span><span class="sep"></span>
+    <span class="title">Attention Is All You Need</span>
+  </div>
+
+  <div class="stage">
+    <svg class="edges">
+      <defs><linearGradient id="ge" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#46e1c4"/><stop offset="1" stop-color="#8b7bff"/></linearGradient></defs>
+      <path class="glow-edge" d="M 684 432 C 750 432, 736 300, 800 300" stroke="url(#ge)" stroke-width="2" fill="none"/>
+      <circle cx="684" cy="432" r="3.5" fill="#46e1c4" style="filter: drop-shadow(0 0 6px #46e1c4)"/>
+      <circle cx="800" cy="300" r="3.5" fill="#8b7bff" style="filter: drop-shadow(0 0 6px #8b7bff)"/>
+    </svg>
+
+    <div class="panel doc">
+      <div class="panel-head"><span class="kind">Document</span><span class="ptitle">Attention Is All You Need</span><span class="icon">⤢</span></div>
+      <div class="body">
+        <h1>Attention Is All You Need</h1>
+        <p>The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms.</p>
+        <p style="margin-top:18px"><mark>Self-attention</mark>, sometimes called intra-attention, is an attention mechanism relating different positions of a single sequence in order to compute a representation of the sequence.</p>
+      </div>
+    </div>
+
+    <div class="seltool"><button>Explain</button><button>More context</button><button>Ask…</button><button>🖼</button></div>
+
+    <div class="panel branch">
+      <div class="panel-head"><span class="kind">Branch</span><span class="ptitle">“self-attention”</span><span class="hud">$0.0012</span><span class="icon">▾</span><span class="icon">×</span></div>
+      <div class="thread">
+        <div class="msg-user">Explain this.</div>
+        <div class="msg-ai">Self-attention lets every position in a sequence look at every other position at once — each word weighs how much the others matter to it, in parallel rather than step-by-step.<div class="usage">Claude Sonnet 4.6 · 228→80 · ⚡6.6k cached · $0.0008</div></div>
+      </div>
+      <div class="composer">
+        <input placeholder="Ask a follow-up…" />
+        <button class="cbtn">🎙</button><button class="cbtn">🖼</button><button class="cbtn send">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dock">
+    <button title="Focus document">⌖</button>
+    <button title="Tidy layout">⊞</button>
+    <button title="Light mode">☀︎</button>
+    <button title="Text size">Aa</button>
+    <button title="AI settings">⚙</button>
+    <span class="cost">$0.0075</span>
+  </div>
+</body>
+</html>
