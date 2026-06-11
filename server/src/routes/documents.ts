@@ -54,6 +54,29 @@ documentsRoute.delete('/:docId', async (c) => {
   return ok ? c.body(null, 204) : c.json({ error: 'document not found' }, 404);
 });
 
+const ASSET_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  pdf: 'application/pdf',
+};
+
+documentsRoute.get('/:docId/assets/:name', async (c) => {
+  const name = path.basename(c.req.param('name')); // prevent traversal
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  try {
+    const buf = await fsp.readFile(path.join(assetsDir(c.req.param('docId')), name));
+    return c.body(buf, 200, {
+      'Content-Type': ASSET_TYPES[ext] ?? 'application/octet-stream',
+      'Cache-Control': 'private, max-age=3600',
+    });
+  } catch {
+    return c.json({ error: 'asset not found' }, 404);
+  }
+});
+
 documentsRoute.post('/', async (c) => {
   const body = createDocumentSchema.parse(await c.req.json());
   const document: Doc = {

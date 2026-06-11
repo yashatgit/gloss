@@ -3,6 +3,14 @@ import type { DocState } from '../store/store';
 import { isProviderConfigured, providerClient } from './client';
 import { documentBlock, SYSTEM_INSTRUCTIONS, toNeutralMessages } from './prompts';
 import type { StreamChunk } from './providers/types';
+import {
+  generateImage as openaiGenerateImage,
+  isConfigured as openaiConfigured,
+  IMAGE_COST_USD,
+  IMAGE_MODEL,
+} from './providers/openai';
+
+export const imageInfo = { model: IMAGE_MODEL, costUsd: IMAGE_COST_USD };
 
 const EXTRACTION_PROMPT = `Transcribe this document faithfully into clean Markdown. Preserve structure: headings, lists, quotes, thread/reply boundaries, tables, code, and page order. Transcribe text exactly — do not summarize, paraphrase, or editorialize. Describe non-text figures inline in brackets like [Figure: ...]. Output only the Markdown, no preamble.`;
 
@@ -58,6 +66,19 @@ export function streamTranscription(
     prompt: EXTRACTION_PROMPT,
     signal,
   });
+}
+
+/**
+ * Generate an explanatory image for a branch. OpenAI-only (image gen). Weaves
+ * the branch's selected passage into the prompt so the image is on-topic.
+ */
+export function generateBranchImage(branch: BranchNode, prompt: string): Promise<string> {
+  if (!openaiConfigured()) {
+    throw new ModelError('Image generation requires an OpenAI API key');
+  }
+  const context = branch.anchor.quote;
+  const imagePrompt = `${prompt}\n\nCreate a clear, simple explanatory illustration or diagram in a clean, minimal style with concise labels where helpful. This relates to "${context}" from a technical document.`;
+  return openaiGenerateImage(imagePrompt);
 }
 
 export type { Doc };

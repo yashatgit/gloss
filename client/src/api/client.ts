@@ -228,3 +228,16 @@ export function deleteBranch(branchId: string) {
 export function deleteDocument(docId: string) {
   return fetch(`${BASE}/documents/${docId}`, { method: 'DELETE' });
 }
+
+export function generateImage(branchId: string, prompt: string) {
+  return fetch(`${BASE}/branches/${branchId}/image`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  }).then((r) => json<{ message: ChatMessage }>(r));
+}
+
+/** URL for a generated/original asset stored under a document. */
+export function assetUrl(docId: string, imagePath: string): string {
+  return `${BASE}/documents/${docId}/assets/${imagePath.split('/').pop() ?? ''}`;
+}

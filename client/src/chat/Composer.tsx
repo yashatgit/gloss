@@ -6,10 +6,12 @@ interface Props {
   onSend: (text: string) => void;
   /** When set (and disabled), shows a Stop button that aborts the stream. */
   onStop?: () => void;
+  /** When set, shows an "illustrate" button that generates an image from the text. */
+  onImage?: (text: string) => void;
   autoFocus?: boolean;
 }
 
-export function Composer({ disabled, placeholder, onSend, onStop, autoFocus }: Props) {
+export function Composer({ disabled, placeholder, onSend, onStop, onImage, autoFocus }: Props) {
   const [text, setText] = useState('');
 
   function submit() {
@@ -17,6 +19,13 @@ export function Composer({ disabled, placeholder, onSend, onStop, autoFocus }: P
     if (!trimmed || disabled) return;
     setText('');
     onSend(trimmed);
+  }
+
+  function image() {
+    const trimmed = text.trim();
+    if (!trimmed || disabled || !onImage) return;
+    setText('');
+    onImage(trimmed);
   }
 
   return (
@@ -36,6 +45,16 @@ export function Composer({ disabled, placeholder, onSend, onStop, autoFocus }: P
           }
         }}
       />
+      {onImage && (
+        <button
+          className="image-button"
+          onClick={image}
+          disabled={disabled || !text.trim()}
+          title="Generate an image to illustrate this"
+        >
+          🖼
+        </button>
+      )}
       {disabled && onStop ? (
         <button className="stop-button" onClick={onStop}>
           Stop

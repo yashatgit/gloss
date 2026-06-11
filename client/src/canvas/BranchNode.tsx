@@ -22,6 +22,9 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
   const isFlashing = useCanvasStore((s) => s.flashNodeId === id);
   const sendMessage = useCanvasStore((s) => s.sendMessage);
   const regenerate = useCanvasStore((s) => s.regenerate);
+  const generateImage = useCanvasStore((s) => s.generateImage);
+  const imageLoading = useCanvasStore((s) => !!s.imageLoading[id]);
+  const imageEnabled = useCanvasStore((s) => s.configuredProviders.includes('openai'));
   const abortMessage = useCanvasStore((s) => s.abortMessage);
   const deleteBranch = useCanvasStore((s) => s.deleteBranch);
   const toggleCollapsed = useCanvasStore((s) => s.toggleCollapsed);
@@ -87,6 +90,7 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
 
   if (!branch) return null;
   const isStreaming = streamingText !== null;
+  const busy = isStreaming || imageLoading;
   const cost = branchCost(branch);
   const style =
     isCollapsed
@@ -156,7 +160,7 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
               </button>
             </div>
           )}
-          {!error && !isStreaming && branch.messages.at(-1)?.role === 'assistant' && (
+          {!error && !busy && branch.messages.at(-1)?.role === 'assistant' && (
             <button
               className="regenerate-btn nodrag"
               title="Regenerate the last reply"
@@ -166,13 +170,14 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
             </button>
           )}
           <Composer
-            disabled={isStreaming}
+            disabled={busy}
             autoFocus={branch.messages.length === 0}
             placeholder={
               branch.messages.length === 0 ? 'Ask about this selection…' : 'Ask a follow-up…'
             }
             onSend={(text) => void sendMessage(id, text)}
-            onStop={() => abortMessage(id)}
+            onStop={isStreaming ? () => abortMessage(id) : undefined}
+            onImage={imageEnabled ? (text) => void generateImage(id, text) : undefined}
           />
         </>
       )}

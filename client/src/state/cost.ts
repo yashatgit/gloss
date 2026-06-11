@@ -1,8 +1,11 @@
 import { costOfUsage, type BranchNode, type CanvasNode, type Doc } from '@reader/shared';
 
-/** Estimated cost of one branch's conversation (sums assistant-message usage). */
+/** Estimated cost of one branch's conversation (token usage + flat image costs). */
 export function branchCost(branch: BranchNode): number {
-  return branch.messages.reduce((sum, m) => sum + costOfUsage(m.model, m.usage), 0);
+  return branch.messages.reduce(
+    (sum, m) => sum + costOfUsage(m.model, m.usage) + (m.costUsd ?? 0),
+    0,
+  );
 }
 
 /** Estimated one-time cost of transcribing an image/PDF document. */

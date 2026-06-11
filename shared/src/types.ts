@@ -48,6 +48,10 @@ export interface ChatMessage {
   /** Model that produced this message — used to attribute cost accurately
    * even when the document's selected model changes between turns. */
   model?: string;
+  /** Generated-image asset path (relative to the doc dir), if this is an image. */
+  imagePath?: string;
+  /** Flat USD cost for non-token-priced outputs (e.g. image generation). */
+  costUsd?: number;
 }
 
 export interface Position {

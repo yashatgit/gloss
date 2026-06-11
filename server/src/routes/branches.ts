@@ -1,9 +1,19 @@
+import fsp from 'node:fs/promises';
+import path from 'node:path';
 import { Context } from 'hono';
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { nanoid } from 'nanoid';
-import { regenerateSchema, sendMessageSchema, type ChatMessage, type Usage } from '@reader/shared';
+import {
+  generateImageSchema,
+  regenerateSchema,
+  sendMessageSchema,
+  type ChatMessage,
+  type Usage,
+} from '@reader/shared';
 import { store } from '../store/store';
+import { assetsDir, docDir } from '../store/paths';
+import { generateBranchImage, imageInfo } from '../ai/chat';
 import { streamBranch } from '../ai/chat';
 import { toSSEError } from '../ai/errors';
 import type { BranchNode } from '@reader/shared';
@@ -107,6 +117,47 @@ branchesRoute.post('/:branchId/regenerate', async (c) => {
   store.touch(state.document.id);
 
   return streamReply(c, state, branch, body.model);
+});
+
+branchesRoute.post('/:branchId/image', async (c) => {
+  const body = generateImageSchema.parse(await c.req.json());
+  const found = store.getBranch(c.req.param('branchId'));
+  if (!found) return c.json({ error: 'branch not found' }, 404);
+  const { state, branch } = found;
+  const docId = state.document.id;
+
+  branch.messages.push({
+    id: nanoid(10),
+    role: 'user',
+    text: body.prompt,
+    createdAt: new Date().toISOString(),
+  });
+  store.touch(docId);
+
+  try {
+    const b64 = await generateBranchImage(branch, body.prompt);
+    const file = `img-${nanoid(8)}.png`;
+    await fsp.mkdir(assetsDir(docId), { recursive: true });
+    await fsp.writeFile(path.join(docDir(docId), 'assets', file), Buffer.from(b64, 'base64'));
+
+    const message: ChatMessage = {
+      id: nanoid(10),
+      role: 'assistant',
+      text: body.prompt,
+      createdAt: new Date().toISOString(),
+      imagePath: `assets/${file}`,
+      model: imageInfo.model,
+      costUsd: imageInfo.costUsd,
+    };
+    if (store.getBranch(branch.id)) {
+      branch.messages.push(message);
+      await store.flushNow(docId);
+    }
+    console.log(`[image] branch=${branch.id} model=${imageInfo.model} cost=$${imageInfo.costUsd}`);
+    return c.json({ message });
+  } catch (err) {
+    return c.json({ error: toSSEError(err).message }, 500);
+  }
 });
 
 branchesRoute.delete('/:branchId', (c) => {

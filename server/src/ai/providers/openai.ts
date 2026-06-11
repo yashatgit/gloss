@@ -12,6 +12,22 @@ export function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
 }
 
+/** Cheapest image model — low quality, 1024² (~$0.005/image). Returns base64 PNG. */
+export const IMAGE_MODEL = 'gpt-image-1-mini';
+export const IMAGE_COST_USD = 0.005;
+
+export async function generateImage(prompt: string): Promise<string> {
+  const res = await getClient().images.generate({
+    model: IMAGE_MODEL,
+    prompt,
+    size: '1024x1024',
+    quality: 'low',
+  });
+  const b64 = res.data?.[0]?.b64_json;
+  if (!b64) throw new Error('image generation returned no data');
+  return b64;
+}
+
 /**
  * OpenAI bills the whole prompt and reports the cached subset separately;
  * normalize so input_tokens is the *uncached* remainder (matching how the

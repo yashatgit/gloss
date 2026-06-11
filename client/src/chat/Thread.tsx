@@ -1,5 +1,7 @@
 import { useEffect, useImperativeHandle, useRef, type RefObject } from 'react';
 import { costOfUsage, formatCost, getModel, type ChatMessage } from '@reader/shared';
+import { assetUrl } from '../api/client';
+import { useCanvasStore } from '../state/canvasStore';
 import { MarkdownView } from '../reading/MarkdownView';
 import type { HighlightSpec } from '../reading/highlights';
 
@@ -24,6 +26,8 @@ export function Thread({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   useImperativeHandle(scrollRef, () => containerRef.current as HTMLDivElement, []);
+  const docId = useCanvasStore((s) => s.doc?.id);
+  const imageLoading = useCanvasStore((s) => !!s.imageLoading[nodeId]);
 
   // Throttle to one scroll per frame — deltas arrive far faster than 60Hz.
   useEffect(() => {
@@ -32,13 +36,20 @@ export function Thread({
       if (el) el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(raf);
-  }, [messages.length, streamingText]);
+  }, [messages.length, streamingText, imageLoading]);
 
   return (
     <div ref={containerRef} className="thread nowheel nodrag">
       {messages.map((m) => (
         <div key={m.id} className={`msg msg-${m.role}`}>
-          {m.role === 'assistant' ? (
+          {m.role !== 'assistant' ? (
+            <p>{m.text}</p>
+          ) : m.imagePath ? (
+            <figure className="msg-image">
+              {docId && <img src={assetUrl(docId, m.imagePath)} alt={m.text} loading="lazy" />}
+              {m.text && <figcaption>{m.text}</figcaption>}
+            </figure>
+          ) : (
             <MarkdownView
               markdown={m.text}
               nodeId={nodeId}
@@ -46,21 +57,31 @@ export function Thread({
               highlights={highlightsFor?.(m.id)}
               onMarkClick={onMarkClick}
             />
-          ) : (
-            <p>{m.text}</p>
           )}
-          {m.usage && (
-            <div className="usage-badge" title="model · input → output tokens · prompt cache reads · est. cost">
-              {getModel(m.model ?? '')?.label ?? m.model ?? '?'} ·{' '}
-              {m.usage.input_tokens}→{m.usage.output_tokens} tok
-              {m.usage.cache_read_input_tokens > 0 &&
-                ` · ⚡${m.usage.cache_read_input_tokens} cached`}
+          {(m.usage || m.costUsd != null) && (
+            <div className="usage-badge" title="model · usage · est. cost">
+              {getModel(m.model ?? '')?.label ?? m.model ?? '?'}
+              {m.usage && (
+                <>
+                  {' · '}
+                  {m.usage.input_tokens}→{m.usage.output_tokens} tok
+                  {m.usage.cache_read_input_tokens > 0 &&
+                    ` · ⚡${m.usage.cache_read_input_tokens} cached`}
+                </>
+              )}
+              {m.imagePath && ' · 🖼'}
               {' · '}
-              {formatCost(costOfUsage(m.model, m.usage))}
+              {formatCost((m.costUsd ?? 0) + costOfUsage(m.model, m.usage))}
             </div>
           )}
         </div>
       ))}
+      {imageLoading && (
+        <div className="msg msg-assistant image-loading">
+          <span className="img-shimmer" />
+          <span className="img-loading-label">Generating image…</span>
+        </div>
+      )}
       {streamingText !== null &&
         (streamingText === '' ? (
           <div className="msg msg-assistant thinking-indicator" aria-label="Thinking">

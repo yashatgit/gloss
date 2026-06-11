@@ -70,6 +70,8 @@ interface CanvasState {
   streaming: Record<string, string>;
   /** branchId → last error message. */
   errors: Record<string, string>;
+  /** branchId → true while an image is generating. */
+  imageLoading: Record<string, boolean>;
   /** Branch nodes collapsed to just their header (client-only UI state). */
   collapsed: Record<string, boolean>;
   /** Node id to briefly pulse (e.g. a branch's source span after focus). */
@@ -118,6 +120,7 @@ interface CanvasState {
   ): Promise<string | null>;
   sendMessage(branchId: string, text: string): Promise<void>;
   regenerate(branchId: string): Promise<void>;
+  generateImage(branchId: string, prompt: string): Promise<void>;
   abortMessage(branchId: string): void;
   deleteBranch(branchId: string): Promise<void>;
 }
@@ -220,6 +223,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   nodes: [],
   streaming: {},
   errors: {},
+  imageLoading: {},
   collapsed: {},
   flashNodeId: null,
   focusTarget: null,
@@ -304,14 +308,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
   },
 
-  setCanvas: (doc, nodes) => set({ doc, nodes, streaming: {}, errors: {}, collapsed: {}, flashNodeId: null, focusTarget: null }),
+  setCanvas: (doc, nodes) => set({ doc, nodes, streaming: {}, errors: {}, imageLoading: {}, collapsed: {}, flashNodeId: null, focusTarget: null }),
 
   loadCanvas: async (docId) => {
     const { document, nodes } = await api.getCanvas(docId);
-    set({ doc: document, nodes, streaming: {}, errors: {}, collapsed: {}, flashNodeId: null, focusTarget: null });
+    set({ doc: document, nodes, streaming: {}, errors: {}, imageLoading: {}, collapsed: {}, flashNodeId: null, focusTarget: null });
   },
 
-  reset: () => set({ doc: null, nodes: [], streaming: {}, errors: {}, collapsed: {}, flashNodeId: null, focusTarget: null }),
+  reset: () => set({ doc: null, nodes: [], streaming: {}, errors: {}, imageLoading: {}, collapsed: {}, flashNodeId: null, focusTarget: null }),
 
   moveNodeLocal: (nodeId, position) =>
     set((s) => ({
@@ -393,6 +397,43 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     await consumeStream(set, get, branchId, (handlers, signal) =>
       api.regenerate(branchId, get().selectedModel, handlers, signal),
     );
+  },
+
+  generateImage: async (branchId, prompt) => {
+    const userMsg: ChatMessage = {
+      id: `tmp-${Date.now()}`,
+      role: 'user',
+      text: prompt,
+      createdAt: new Date().toISOString(),
+    };
+    set((s) => {
+      const errors = { ...s.errors };
+      delete errors[branchId];
+      return {
+        nodes: updateBranch(s.nodes, branchId, (b) => ({ ...b, messages: [...b.messages, userMsg] })),
+        imageLoading: { ...s.imageLoading, [branchId]: true },
+        errors,
+        focusTarget: branchId,
+      };
+    });
+    const clearLoading = (s: CanvasState) => {
+      const imageLoading = { ...s.imageLoading };
+      delete imageLoading[branchId];
+      return imageLoading;
+    };
+    try {
+      const { message } = await api.generateImage(branchId, prompt);
+      set((s) => ({
+        nodes: updateBranch(s.nodes, branchId, (b) => ({ ...b, messages: [...b.messages, message] })),
+        imageLoading: clearLoading(s),
+        tidyNonce: s.tidyNonce + 1,
+      }));
+    } catch (err) {
+      set((s) => ({
+        imageLoading: clearLoading(s),
+        errors: { ...s.errors, [branchId]: err instanceof Error ? err.message : String(err) },
+      }));
+    }
   },
 
   abortMessage: (branchId) => aborters.get(branchId)?.abort(),

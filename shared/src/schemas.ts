@@ -47,6 +47,10 @@ export const regenerateSchema = z.object({
   model: modelId,
 });
 
+export const generateImageSchema = z.object({
+  prompt: z.string().min(1).max(2000),
+});
+
 export const patchNodeSchema = z.object({
   docId: z.string(),
   x: z.number().optional(),
