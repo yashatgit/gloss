@@ -44,6 +44,22 @@ export function getConfig() {
   );
 }
 
+export type KeyStatus = { set: boolean; source: 'stored' | 'env' | null };
+export type KeysStatus = Record<Provider, KeyStatus>;
+
+export function getKeys() {
+  return fetch(`${BASE}/keys`).then((r) => json<{ keys: KeysStatus }>(r));
+}
+
+/** Set (string) or clear (null) provider keys; returns the new status. */
+export function setKeys(patch: Partial<Record<Provider, string | null>>) {
+  return fetch(`${BASE}/keys`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  }).then((r) => json<{ keys: KeysStatus }>(r));
+}
+
 export function listDocuments() {
   return fetch(`${BASE}/documents`).then((r) =>
     json<{ documents: DocumentSummary[] }>(r),

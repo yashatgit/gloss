@@ -120,6 +120,11 @@ interface CanvasState {
   setModel(id: string): void;
   loadConfig(): Promise<void>;
 
+  /** BYOK key status (which providers have a key) + setter. */
+  keysStatus: api.KeysStatus | null;
+  loadKeys(): Promise<void>;
+  saveKeys(patch: Partial<Record<Provider, string | null>>): Promise<void>;
+
   /** Image generation config (persisted). */
   imageModel: string;
   imageQuality: ImageQuality;
@@ -351,10 +356,24 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     // If the persisted model's provider has no key, fall back to the first
     // model of a configured provider so requests don't fail out of the gate.
     const current = getModel(get().selectedModel);
-    if (!current || !providers.includes(current.provider)) {
+    if ((!current || !providers.includes(current.provider)) && providers.length) {
       const usable = models.find((m) => providers.includes(m.provider));
       if (usable) get().setModel(usable.id);
     }
+  },
+
+  keysStatus: null,
+
+  loadKeys: async () => {
+    const { keys } = await api.getKeys();
+    set({ keysStatus: keys });
+  },
+
+  saveKeys: async (patch) => {
+    const { keys } = await api.setKeys(patch);
+    set({ keysStatus: keys });
+    // Keys changed → providers/models may now be (un)available; refresh config.
+    await get().loadConfig();
   },
 
   setCanvas: (doc, nodes) => set({ doc, nodes, streaming: {}, errors: {}, imageLoading: {}, collapsed: {}, flashNodeId: null, focusTarget: null }),

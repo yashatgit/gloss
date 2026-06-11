@@ -1,15 +1,23 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Usage } from '@gloss/shared';
+import { getKey, hasKey, MissingKeyError } from '../../store/keys';
 import type { ChatArgs, ChatProvider, StreamChunk, VisionArgs } from './types';
 
 let client: Anthropic | null = null;
+let clientKey: string | undefined;
 function getClient(): Anthropic {
-  if (!client) client = new Anthropic();
+  const key = getKey('anthropic');
+  if (!key) throw new MissingKeyError('anthropic');
+  // Rebuild only when the key changes — picks up a freshly-pasted key live.
+  if (!client || clientKey !== key) {
+    client = new Anthropic({ apiKey: key });
+    clientKey = key;
+  }
   return client;
 }
 
 export function isConfigured(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return hasKey('anthropic');
 }
 
 function buildSystemBlocks(

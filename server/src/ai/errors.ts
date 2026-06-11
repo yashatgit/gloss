@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import type { SSEError } from '@gloss/shared';
+import { MissingKeyError } from '../store/keys';
 import { ModelError } from './chat';
 
 /** Concise, human-readable message for a provider HTTP error. */
@@ -27,7 +28,7 @@ function friendly(status: number, provider: string): string {
 }
 
 export function toSSEError(err: unknown): SSEError {
-  if (err instanceof ModelError) {
+  if (err instanceof MissingKeyError || err instanceof ModelError) {
     return { status: 400, type: 'model_error', message: err.message };
   }
   if (err instanceof Anthropic.APIError) {

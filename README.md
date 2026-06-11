@@ -10,9 +10,29 @@ can branch again, recursively.
 
 ```sh
 pnpm install
-cp .env.example .env   # add your ANTHROPIC_API_KEY
 pnpm dev               # server on :8787, app on http://localhost:5173
 ```
+
+Add your API keys in-app (**Settings → API keys**, the cog on the home page) —
+no `.env` required. Keys are stored locally under the app's data dir and never
+leave your machine except to the provider. A `.env` (copy `.env.example`) still
+works as a fallback; an in-app key overrides it.
+
+## Desktop app (Electron)
+
+```sh
+# Dev: run the web dev servers, then open the Electron window pointing at them
+pnpm dev
+pnpm electron:dev
+
+# Production-style: build the client + bundle the server, run the self-contained app
+pnpm desktop:start
+```
+
+The desktop build (`desktop/`) bundles the Hono API server into a single file
+(`desktop/dist/server.mjs`), starts it in the Electron main process with the
+data dir at the OS per-user app-data location, and serves the built client from
+the same origin. Because it's BYOK, the packaged app needs no `.env`.
 
 ## How it works
 

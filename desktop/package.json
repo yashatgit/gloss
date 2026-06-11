@@ -1,0 +1,16 @@
+{
+  "name": "@gloss/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gloss desktop app (Electron)",
+  "main": "main.cjs",
+  "scripts": {
+    "electron": "GLOSS_DEV_URL=http://localhost:5173 electron .",
+    "build": "node build.mjs",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "esbuild": "^0.24.0"
+  }
+}

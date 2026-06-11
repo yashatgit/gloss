@@ -2,5 +2,7 @@ packages:
   - shared
   - server
   - client
+  - desktop
 allowBuilds:
   esbuild: true
+  electron: true

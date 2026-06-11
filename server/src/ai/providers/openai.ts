@@ -1,15 +1,23 @@
 import OpenAI from 'openai';
 import type { Usage } from '@gloss/shared';
+import { getKey, hasKey, MissingKeyError } from '../../store/keys';
 import { type ChatArgs, type ChatProvider, EMPTY_USAGE, type StreamChunk, type VisionArgs } from './types';
 
 let client: OpenAI | null = null;
+let clientKey: string | undefined;
 function getClient(): OpenAI {
-  if (!client) client = new OpenAI();
+  const key = getKey('openai');
+  if (!key) throw new MissingKeyError('openai');
+  // Rebuild only when the key changes — picks up a freshly-pasted key live.
+  if (!client || clientKey !== key) {
+    client = new OpenAI({ apiKey: key });
+    clientKey = key;
+  }
   return client;
 }
 
 export function isConfigured(): boolean {
-  return !!process.env.OPENAI_API_KEY;
+  return hasKey('openai');
 }
 
 export interface ImageOpts {
