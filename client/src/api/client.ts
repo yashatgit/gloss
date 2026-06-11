@@ -229,11 +229,15 @@ export function deleteDocument(docId: string) {
   return fetch(`${BASE}/documents/${docId}`, { method: 'DELETE' });
 }
 
-export function generateImage(branchId: string, prompt: string) {
+export function generateImage(
+  branchId: string,
+  prompt: string,
+  opts: { model: string; quality: string; size: string },
+) {
   return fetch(`${BASE}/branches/${branchId}/image`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, ...opts }),
   }).then((r) => json<{ message: ChatMessage }>(r));
 }
 

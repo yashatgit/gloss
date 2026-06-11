@@ -6,6 +6,7 @@ import { streamSSE } from 'hono/streaming';
 import { nanoid } from 'nanoid';
 import {
   generateImageSchema,
+  imageCost,
   regenerateSchema,
   sendMessageSchema,
   type ChatMessage,
@@ -13,7 +14,7 @@ import {
 } from '@gloss/shared';
 import { store } from '../store/store';
 import { assetsDir, docDir } from '../store/paths';
-import { generateBranchImage, imageInfo } from '../ai/chat';
+import { generateBranchImage } from '../ai/chat';
 import { streamBranch } from '../ai/chat';
 import { toSSEError } from '../ai/errors';
 import type { BranchNode } from '@gloss/shared';
@@ -135,25 +136,27 @@ branchesRoute.post('/:branchId/image', async (c) => {
   store.touch(docId);
 
   try {
-    const b64 = await generateBranchImage(branch, body.prompt);
+    const opts = { model: body.model, quality: body.quality, size: body.size };
+    const b64 = await generateBranchImage(branch, body.prompt, opts);
     const file = `img-${nanoid(8)}.png`;
     await fsp.mkdir(assetsDir(docId), { recursive: true });
     await fsp.writeFile(path.join(docDir(docId), 'assets', file), Buffer.from(b64, 'base64'));
 
+    const cost = imageCost(body.model, body.quality, body.size);
     const message: ChatMessage = {
       id: nanoid(10),
       role: 'assistant',
       text: body.prompt,
       createdAt: new Date().toISOString(),
       imagePath: `assets/${file}`,
-      model: imageInfo.model,
-      costUsd: imageInfo.costUsd,
+      model: body.model,
+      costUsd: cost,
     };
     if (store.getBranch(branch.id)) {
       branch.messages.push(message);
       await store.flushNow(docId);
     }
-    console.log(`[image] branch=${branch.id} model=${imageInfo.model} cost=$${imageInfo.costUsd}`);
+    console.log(`[image] branch=${branch.id} model=${body.model} ${body.quality} ${body.size} cost=$${cost}`);
     return c.json({ message });
   } catch (err) {
     return c.json({ error: toSSEError(err).message }, 500);

@@ -12,17 +12,18 @@ export function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
 }
 
-// Full gpt-image-1 at high quality — far better at legible labels and coherent
-// diagrams than the mini/low tier (~$0.19/1024² image). Returns base64 PNG.
-export const IMAGE_MODEL = 'gpt-image-1';
-export const IMAGE_COST_USD = 0.19;
+export interface ImageOpts {
+  model: string;
+  quality: 'low' | 'medium' | 'high';
+  size: '1024x1024' | '1024x1536' | '1536x1024';
+}
 
-export async function generateImage(prompt: string): Promise<string> {
+export async function generateImage(prompt: string, opts: ImageOpts): Promise<string> {
   const res = await getClient().images.generate({
-    model: IMAGE_MODEL,
+    model: opts.model,
     prompt,
-    size: '1024x1024',
-    quality: 'high',
+    size: opts.size,
+    quality: opts.quality,
   });
   const b64 = res.data?.[0]?.b64_json;
   if (!b64) throw new Error('image generation returned no data');

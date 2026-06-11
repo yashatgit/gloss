@@ -6,11 +6,8 @@ import type { StreamChunk } from './providers/types';
 import {
   generateImage as openaiGenerateImage,
   isConfigured as openaiConfigured,
-  IMAGE_COST_USD,
-  IMAGE_MODEL,
+  type ImageOpts,
 } from './providers/openai';
-
-export const imageInfo = { model: IMAGE_MODEL, costUsd: IMAGE_COST_USD };
 
 const EXTRACTION_PROMPT = `Transcribe this document faithfully into clean Markdown. Preserve structure: headings, lists, quotes, thread/reply boundaries, tables, code, and page order. Transcribe text exactly — do not summarize, paraphrase, or editorialize. Describe non-text figures inline in brackets like [Figure: ...]. Output only the Markdown, no preamble.`;
 
@@ -73,7 +70,11 @@ export function streamTranscription(
  * the image in the actual conversation — the latest assistant explanation and
  * the selected passage — so "show this as an image" illustrates the real content.
  */
-export function generateBranchImage(branch: BranchNode, prompt: string): Promise<string> {
+export function generateBranchImage(
+  branch: BranchNode,
+  prompt: string,
+  opts: ImageOpts,
+): Promise<string> {
   if (!openaiConfigured()) {
     throw new ModelError('Image generation requires an OpenAI API key');
   }
@@ -85,7 +86,7 @@ Concept (about "${branch.anchor.quote}"):
 ${content}
 
 Extra instruction from the user: ${prompt}`;
-  return openaiGenerateImage(imagePrompt);
+  return openaiGenerateImage(imagePrompt, opts);
 }
 
 export type { Doc };

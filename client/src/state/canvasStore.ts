@@ -1,12 +1,18 @@
 import { create } from 'zustand';
 import {
+  DEFAULT_IMAGE,
   DEFAULT_MODEL,
   getModel,
+  isKnownImageModel,
+  IMAGE_QUALITIES,
+  IMAGE_SIZES,
   type Anchor,
   type BranchNode,
   type CanvasNode,
   type ChatMessage,
   type Doc,
+  type ImageQuality,
+  type ImageSize,
   type ModelInfo,
   type Position,
   type Provider,
@@ -16,6 +22,18 @@ import * as api from '../api/client';
 const MODEL_STORAGE_KEY = 'gloss.selectedModel';
 const THEME_KEY = 'gloss.theme';
 const FONT_KEY = 'gloss.fontScale';
+const IMG_MODEL_KEY = 'gloss.imageModel';
+const IMG_QUALITY_KEY = 'gloss.imageQuality';
+const IMG_SIZE_KEY = 'gloss.imageSize';
+
+function loadStored<T extends string>(key: string, fallback: T, valid: (v: string) => boolean): T {
+  try {
+    const v = localStorage.getItem(key);
+    return v && valid(v) ? (v as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export type Theme = 'light' | 'dark';
 export const FONT_MIN = 0.85;
@@ -101,6 +119,12 @@ interface CanvasState {
   configuredProviders: Provider[];
   setModel(id: string): void;
   loadConfig(): Promise<void>;
+
+  /** Image generation config (persisted). */
+  imageModel: string;
+  imageQuality: ImageQuality;
+  imageSize: ImageSize;
+  setImageConfig(patch: Partial<{ model: string; quality: ImageQuality; size: ImageSize }>): void;
 
   setCanvas(doc: Doc, nodes: CanvasNode[]): void;
   loadCanvas(docId: string): Promise<void>;
@@ -288,6 +312,29 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   models: [],
   configuredProviders: [],
 
+  imageModel: loadStored(IMG_MODEL_KEY, DEFAULT_IMAGE.model, isKnownImageModel),
+  imageQuality: loadStored<ImageQuality>(IMG_QUALITY_KEY, DEFAULT_IMAGE.quality, (v) =>
+    (IMAGE_QUALITIES as readonly string[]).includes(v),
+  ),
+  imageSize: loadStored<ImageSize>(IMG_SIZE_KEY, DEFAULT_IMAGE.size, (v) =>
+    (IMAGE_SIZES as readonly string[]).includes(v),
+  ),
+
+  setImageConfig: (patch) => {
+    try {
+      if (patch.model) localStorage.setItem(IMG_MODEL_KEY, patch.model);
+      if (patch.quality) localStorage.setItem(IMG_QUALITY_KEY, patch.quality);
+      if (patch.size) localStorage.setItem(IMG_SIZE_KEY, patch.size);
+    } catch {
+      // ignore
+    }
+    set((s) => ({
+      imageModel: patch.model ?? s.imageModel,
+      imageQuality: patch.quality ?? s.imageQuality,
+      imageSize: patch.size ?? s.imageSize,
+    }));
+  },
+
   setModel: (id) => {
     try {
       localStorage.setItem(MODEL_STORAGE_KEY, id);
@@ -422,7 +469,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       return imageLoading;
     };
     try {
-      const { message } = await api.generateImage(branchId, prompt);
+      const { imageModel, imageQuality, imageSize } = get();
+      const { message } = await api.generateImage(branchId, prompt, {
+        model: imageModel,
+        quality: imageQuality,
+        size: imageSize,
+      });
       set((s) => ({
         nodes: updateBranch(s.nodes, branchId, (b) => ({ ...b, messages: [...b.messages, message] })),
         imageLoading: clearLoading(s),

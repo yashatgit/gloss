@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isKnownModel } from './models';
+import { isKnownImageModel, isKnownModel, IMAGE_QUALITIES, IMAGE_SIZES } from './models';
 
 const modelId = z.string().refine(isKnownModel, { message: 'unknown model' });
 
@@ -49,6 +49,9 @@ export const regenerateSchema = z.object({
 
 export const generateImageSchema = z.object({
   prompt: z.string().min(1).max(2000),
+  model: z.string().refine(isKnownImageModel, { message: 'unknown image model' }),
+  quality: z.enum(IMAGE_QUALITIES),
+  size: z.enum(IMAGE_SIZES),
 });
 
 export const patchNodeSchema = z.object({

@@ -118,3 +118,78 @@ export function formatCost(usd: number): string {
   if (usd < 1) return `$${usd.toFixed(3)}`;
   return `$${usd.toFixed(2)}`;
 }
+
+// ---------------------------------------------------------------------------
+// Image generation models (OpenAI). Price = USD per image, by quality × size.
+// Snapshot 2026-06 — verify at https://openai.com/api/pricing/.
+// ---------------------------------------------------------------------------
+
+export const IMAGE_QUALITIES = ['low', 'medium', 'high'] as const;
+export const IMAGE_SIZES = ['1024x1024', '1024x1536', '1536x1024'] as const;
+export type ImageQuality = (typeof IMAGE_QUALITIES)[number];
+export type ImageSize = (typeof IMAGE_SIZES)[number];
+
+export interface ImageModelInfo {
+  id: string;
+  label: string;
+  /** price[quality][size] in USD per image. */
+  price: Record<ImageQuality, Record<ImageSize, number>>;
+}
+
+export const IMAGE_MODELS: ImageModelInfo[] = [
+  {
+    id: 'gpt-image-2',
+    label: 'GPT Image 2',
+    price: {
+      low: { '1024x1024': 0.006, '1024x1536': 0.005, '1536x1024': 0.005 },
+      medium: { '1024x1024': 0.053, '1024x1536': 0.041, '1536x1024': 0.041 },
+      high: { '1024x1024': 0.211, '1024x1536': 0.165, '1536x1024': 0.165 },
+    },
+  },
+  {
+    id: 'gpt-image-1.5',
+    label: 'GPT Image 1.5',
+    price: {
+      low: { '1024x1024': 0.009, '1024x1536': 0.013, '1536x1024': 0.013 },
+      medium: { '1024x1024': 0.034, '1024x1536': 0.05, '1536x1024': 0.05 },
+      high: { '1024x1024': 0.133, '1024x1536': 0.2, '1536x1024': 0.2 },
+    },
+  },
+  {
+    id: 'gpt-image-1',
+    label: 'GPT Image 1',
+    price: {
+      low: { '1024x1024': 0.011, '1024x1536': 0.016, '1536x1024': 0.016 },
+      medium: { '1024x1024': 0.042, '1024x1536': 0.063, '1536x1024': 0.063 },
+      high: { '1024x1024': 0.167, '1024x1536': 0.25, '1536x1024': 0.25 },
+    },
+  },
+  {
+    id: 'gpt-image-1-mini',
+    label: 'GPT Image 1 Mini',
+    price: {
+      low: { '1024x1024': 0.005, '1024x1536': 0.006, '1536x1024': 0.006 },
+      medium: { '1024x1024': 0.011, '1024x1536': 0.015, '1536x1024': 0.015 },
+      high: { '1024x1024': 0.036, '1024x1536': 0.052, '1536x1024': 0.052 },
+    },
+  },
+];
+
+export const DEFAULT_IMAGE = {
+  model: 'gpt-image-1.5',
+  quality: 'low' as ImageQuality,
+  size: '1024x1024' as ImageSize,
+};
+
+export function getImageModel(id: string): ImageModelInfo | undefined {
+  return IMAGE_MODELS.find((m) => m.id === id);
+}
+
+export function isKnownImageModel(id: string): boolean {
+  return IMAGE_MODELS.some((m) => m.id === id);
+}
+
+/** USD per image for a model/quality/size combination. */
+export function imageCost(modelId: string, quality: ImageQuality, size: ImageSize): number {
+  return getImageModel(modelId)?.price[quality][size] ?? 0;
+}

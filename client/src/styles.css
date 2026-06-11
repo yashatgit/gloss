@@ -643,6 +643,81 @@ input {
   cursor: zoom-in;
 }
 
+/* AI settings modal */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+  padding: 6vh 5vw;
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.15s ease;
+}
+.settings-card {
+  width: 440px;
+  max-width: 100%;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 4px 22px 24px;
+  animation: popIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes popIn {
+  from { transform: scale(0.94); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 8px;
+}
+.settings-head h2 {
+  font-family: var(--font-read);
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+.settings-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--border-soft);
+  color: var(--soft);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.settings-close:hover { color: var(--accent); }
+.settings-section { padding: 14px 0; border-top: 1px solid var(--border); }
+.settings-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.settings-warn { color: #c8862b; font-weight: 500; }
+.settings-hint { margin: 10px 0 0; font-size: 12px; color: var(--soft); }
+.settings-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.settings-card select,
+.settings-card .model-picker {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  max-width: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--field);
+  padding: 10px 30px 10px 12px;
+  font-size: 14px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.settings-card select:focus,
+.settings-card .model-picker:focus { outline: none; border-color: var(--accent); }
+
 /* full-screen image lightbox */
 .lightbox {
   position: fixed;
