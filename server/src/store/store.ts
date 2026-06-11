@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import type {
-  BranchNode,
-  Canvas,
-  CanvasNode,
-  Doc,
-  DocumentSummary,
+import {
+  costOfUsage,
+  type BranchNode,
+  type Canvas,
+  type CanvasNode,
+  type Doc,
+  type DocumentSummary,
 } from '@gloss/shared';
 import { canvasPath, docDir, documentPath, indexPath } from './paths';
 
@@ -55,7 +56,22 @@ class Store {
   }
 
   listDocuments(): DocumentSummary[] {
-    return [...this.index].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.index]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((entry) => {
+        const state = this.docs.get(entry.id);
+        if (!state) return entry;
+        let cost = costOfUsage(state.document.importModel, state.document.importUsage);
+        let branches = 0;
+        for (const node of state.canvas.nodes) {
+          if (node.kind !== 'branch') continue;
+          branches += 1;
+          for (const m of node.messages) {
+            cost += costOfUsage(m.model, m.usage) + (m.costUsd ?? 0);
+          }
+        }
+        return { ...entry, source: state.document.source, branches, costUsd: cost };
+      });
   }
 
   getDoc(docId: string): DocState | undefined {

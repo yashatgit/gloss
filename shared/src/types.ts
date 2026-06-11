@@ -93,4 +93,9 @@ export interface DocumentSummary {
   id: string;
   title: string;
   createdAt: string;
+  source?: DocumentSource;
+  /** Number of branches on the canvas. */
+  branches?: number;
+  /** Estimated total spend on this document (branches + import). */
+  costUsd?: number;
 }

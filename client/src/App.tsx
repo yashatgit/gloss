@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { type DocumentSummary } from '@gloss/shared';
+import { formatCost, type DocumentSummary } from '@gloss/shared';
 import * as api from './api/client';
 import { encodeImage, fileToBase64 } from './api/image';
 import { applyFontScale, applyTheme, useCanvasStore } from './state/canvasStore';
@@ -57,6 +57,7 @@ function HomePage() {
   const [docs, setDocs] = useState<DocumentSummary[]>([]);
   const [importPreview, setImportPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
   const setCanvas = useCanvasStore((s) => s.setCanvas);
 
@@ -132,9 +133,11 @@ function HomePage() {
 
   if (importPreview !== null) {
     return (
-      <div className="paste-page">
-        <h1>Gloss</h1>
-        <p>Transcribing your file…</p>
+      <div className="home">
+        <div className="wordmark">
+          Gloss<span className="wm-dot">.</span>
+        </div>
+        <p className="tagline">Transcribing your file…</p>
         <div className="import-preview markdown-body">
           {importPreview || 'Reading the file…'}
         </div>
@@ -142,62 +145,114 @@ function HomePage() {
     );
   }
 
+  const filtered = query.trim()
+    ? docs.filter((d) => d.title.toLowerCase().includes(query.trim().toLowerCase()))
+    : docs;
+
   return (
-    <div className="paste-page" onPaste={handlePaste}>
-      <h1>Gloss</h1>
-      <p>
-        Paste long-form text, markdown, or a screenshot — then select anything
-        while reading to branch off an AI conversation about it.
+    <div className="home" onPaste={handlePaste}>
+      <div className="wordmark">
+        Gloss<span className="wm-dot">.</span>
+      </div>
+      <p className="tagline">
+        Read anything deeply. <b>Select a passage, branch off,</b> and let AI
+        unpack it — right where the question came up.
       </p>
-      <label className="model-row">
-        Model: <ModelPicker />
-      </label>
-      <textarea
-        value={pasteText}
-        onChange={(e) => setPasteText(e.target.value)}
-        placeholder="Paste text or markdown here — or paste an image anywhere on this page…"
-        rows={14}
-      />
-      <div className="action-row">
-        <button onClick={createDoc} disabled={!pasteText.trim()}>
-          Start reading
-        </button>
-        <button className="upload-btn" onClick={() => pdfInputRef.current?.click()}>
-          ⬆ Upload PDF
-        </button>
-        <input
-          ref={pdfInputRef}
-          type="file"
-          accept="application/pdf"
-          hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void handlePdf(f);
-            e.target.value = '';
-          }}
+
+      <div className="capture">
+        <textarea
+          value={pasteText}
+          onChange={(e) => setPasteText(e.target.value)}
+          placeholder="Paste an article, markdown, or a screenshot… or drop in a PDF."
+          rows={6}
         />
+        <div className="capture-bar">
+          <span className="capture-hint">
+            <span>
+              <kbd>⌘V</kbd> paste
+            </span>
+            <span>
+              <kbd>img</kbd> auto-imports
+            </span>
+          </span>
+          <span className="capture-spacer" />
+          <button className="chipbtn" onClick={() => pdfInputRef.current?.click()}>
+            ⬆ PDF
+          </button>
+          <ModelPicker />
+          <button className="go-btn" onClick={createDoc} disabled={!pasteText.trim()}>
+            Start reading →
+          </button>
+          <input
+            ref={pdfInputRef}
+            type="file"
+            accept="application/pdf"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handlePdf(f);
+              e.target.value = '';
+            }}
+          />
+        </div>
       </div>
       {error && <div className="error-bar">{error}</div>}
+
       {docs.length > 0 && (
-        <div className="doc-list">
-          <h2>Recent documents</h2>
-          {docs.map((d) => (
-            <div key={d.id} className="doc-list-item">
-              <button className="doc-open" onClick={() => navigateToDoc(d.id)}>
-                <span>{d.title}</span>
-                <span className="doc-date">{new Date(d.createdAt).toLocaleDateString()}</span>
-              </button>
-              <button
-                className="doc-del"
-                title="Delete document"
-                onClick={() => void removeDoc(d.id)}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="lib-head">
+            <h2>Library</h2>
+            <input
+              className="lib-search"
+              placeholder="Search documents…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="lib-rows">
+            {filtered.map((d) => (
+              <div key={d.id} className="lib-row">
+                <button className="lib-open" onClick={() => navigateToDoc(d.id)}>
+                  <span className="lib-glyph">{glyphFor(d.source)}</span>
+                  <span className="lib-main">
+                    <span className="lib-title">{d.title}</span>
+                    <span className="lib-sub">
+                      {d.branches != null && (
+                        <span className="lib-branches">⑂ {d.branches} branch{d.branches === 1 ? '' : 'es'}</span>
+                      )}
+                      <span>{sourceLabel(d.source)}</span>
+                      <span>{new Date(d.createdAt).toLocaleDateString()}</span>
+                    </span>
+                  </span>
+                  {d.costUsd != null && d.costUsd > 0 && (
+                    <span className="lib-cost">{formatCost(d.costUsd)}</span>
+                  )}
+                </button>
+                <button
+                  className="lib-del"
+                  title="Delete document"
+                  onClick={() => void removeDoc(d.id)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {filtered.length === 0 && <div className="lib-empty">No documents match “{query}”.</div>}
+          </div>
+        </>
       )}
     </div>
   );
+}
+
+function glyphFor(source?: string): string {
+  if (source === 'pdf') return '📄';
+  if (source === 'image') return '🖼️';
+  return '📰';
+}
+
+function sourceLabel(source?: string): string {
+  if (source === 'pdf') return 'PDF';
+  if (source === 'image') return 'Image';
+  return 'Article';
 }
