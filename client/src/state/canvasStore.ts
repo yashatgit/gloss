@@ -174,7 +174,7 @@ async function consumeStream(
         onError: (e) =>
           set((s) => ({
             streaming: clearStreaming(s),
-            errors: { ...s.errors, [branchId]: `${e.type} (${e.status}): ${e.message}` },
+            errors: { ...s.errors, [branchId]: e.message },
           })),
       },
       controller.signal,

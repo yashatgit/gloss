@@ -289,11 +289,12 @@ function FocusController() {
 
   useEffect(() => {
     if (!focusTarget) return;
-    // Let the node mount/measure first so fitView frames it correctly.
+    // Run after the create-triggered auto-tidy (160ms) has repositioned the
+    // node, so we frame its final spot rather than where it briefly mounted.
     const t = setTimeout(() => {
       void fitView({ nodes: [{ id: focusTarget }], duration: 400, maxZoom: 1, padding: 0.3 });
       clearFocus();
-    }, 60);
+    }, 240);
     return () => clearTimeout(t);
   }, [focusTarget, fitView, clearFocus]);
 
