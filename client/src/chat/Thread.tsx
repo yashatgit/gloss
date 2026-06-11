@@ -1,4 +1,5 @@
-import { useEffect, useImperativeHandle, useRef, type RefObject } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { costOfUsage, formatCost, getModel, type ChatMessage } from '@gloss/shared';
 import { assetUrl } from '../api/client';
 import { useCanvasStore } from '../state/canvasStore';
@@ -28,6 +29,14 @@ export function Thread({
   useImperativeHandle(scrollRef, () => containerRef.current as HTMLDivElement, []);
   const docId = useCanvasStore((s) => s.doc?.id);
   const imageLoading = useCanvasStore((s) => !!s.imageLoading[nodeId]);
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!zoomSrc) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setZoomSrc(null);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [zoomSrc]);
 
   // Follow streaming output ONLY when the user is already at the bottom. If
   // they scroll up to read, their position is left intact (no yanking down).
@@ -54,7 +63,15 @@ export function Thread({
             <p>{m.text}</p>
           ) : m.imagePath ? (
             <figure className="msg-image">
-              {docId && <img src={assetUrl(docId, m.imagePath)} alt={m.text} loading="lazy" />}
+              {docId && (
+                <img
+                  src={assetUrl(docId, m.imagePath)}
+                  alt={m.text}
+                  loading="lazy"
+                  title="Click to enlarge"
+                  onClick={() => docId && setZoomSrc(assetUrl(docId, m.imagePath!))}
+                />
+              )}
               {m.text && <figcaption>{m.text}</figcaption>}
             </figure>
           ) : (
@@ -103,6 +120,16 @@ export function Thread({
             <span className="stream-cursor" />
           </div>
         ))}
+      {zoomSrc &&
+        createPortal(
+          <div className="lightbox" onClick={() => setZoomSrc(null)}>
+            <img src={zoomSrc} alt="" />
+            <button className="lightbox-close" aria-label="Close">
+              ×
+            </button>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

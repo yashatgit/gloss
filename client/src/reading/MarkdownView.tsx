@@ -1,6 +1,7 @@
 import { memo, useRef, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import hljs from 'highlight.js/lib/common';
 import { useHighlights, type HighlightSpec } from './highlights';
 
 interface Props {
@@ -26,21 +27,72 @@ function nodeText(node: ReactNode): string {
   return '';
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 /**
- * Confluence-style code block: light panel + a line-number gutter. Numbers are
- * CSS counters (::before), so they're not real text — they stay out of text
- * selection, copy, and the anchor-offset mapping.
+ * Syntax-highlight code, then split the highlighted HTML into per-line strings,
+ * re-opening any highlight.js spans that straddle a newline. Each line lives in
+ * its own element (for the CSS-counter gutter) while highlighting stays correct
+ * across multi-line tokens.
  */
-function CodeBlock({ raw }: { raw: string }) {
-  const lines = raw.replace(/\n+$/, '').split('\n');
+function highlightToLines(raw: string, lang?: string): string[] {
+  let html: string;
+  try {
+    html =
+      lang && hljs.getLanguage(lang)
+        ? hljs.highlight(raw, { language: lang, ignoreIllegals: true }).value
+        : hljs.highlightAuto(raw).value;
+  } catch {
+    html = escapeHtml(raw);
+  }
+
+  const lines: string[] = [''];
+  const stack: string[] = [];
+  const append = (s: string) => (lines[lines.length - 1] += s);
+  const tokenRe = /<span [^>]*>|<\/span>|[^<]+/g;
+  let m: RegExpExecArray | null;
+  while ((m = tokenRe.exec(html))) {
+    const tok = m[0];
+    if (tok.startsWith('<span')) {
+      stack.push(tok);
+      append(tok);
+    } else if (tok === '</span>') {
+      stack.pop();
+      append(tok);
+    } else {
+      const parts = tok.split('\n');
+      parts.forEach((part, i) => {
+        if (i > 0) {
+          for (let j = 0; j < stack.length; j++) append('</span>');
+          lines.push('');
+          for (const open of stack) append(open);
+        }
+        append(part);
+      });
+    }
+  }
+  return lines;
+}
+
+/**
+ * Confluence-style code block: light panel + line-number gutter, with
+ * highlight.js syntax colors. Line numbers are CSS counters (::before), so they
+ * stay out of text selection, copy, and the anchor-offset mapping.
+ */
+function CodeBlock({ raw, lang }: { raw: string; lang?: string }) {
+  const lines = highlightToLines(raw.replace(/\n+$/, ''), lang);
   return (
-    <div className="cf-codeblock">
+    <div className="cf-codeblock hljs">
       <pre className="cf-pre">
         <code>
           {lines.map((line, i) => (
-            <span className="cf-line" key={i}>
-              {line === '' ? ' ' : line}
-            </span>
+            <span
+              className="cf-line"
+              key={i}
+              dangerouslySetInnerHTML={{ __html: line === '' ? ' ' : line }}
+            />
           ))}
         </code>
       </pre>
@@ -48,12 +100,21 @@ function CodeBlock({ raw }: { raw: string }) {
   );
 }
 
+function langOf(className?: string): string | undefined {
+  return /language-(\w+)/.exec(className ?? '')?.[1];
+}
+
 // Module-level so the object identity is stable across renders.
 const mdComponents: Components = {
-  // Block code is fully rendered here from raw text (the inner <code> is ignored).
-  pre: ({ children }) => <CodeBlock raw={nodeText(children)} />,
-  // Only inline code reaches this (block code is handled by `pre`).
-  code: ({ children }) => <code className="cf-inline">{children}</code>,
+  // Unwrap <pre>; the inner code component renders the styled block.
+  pre: ({ children }) => <>{children}</>,
+  code: ({ className, children }) => {
+    const text = nodeText(children);
+    const lang = langOf(className);
+    // Fenced block = has a language class or spans multiple lines; else inline.
+    if (lang || text.includes('\n')) return <CodeBlock raw={text} lang={lang} />;
+    return <code className="cf-inline">{children}</code>;
+  },
   // Wrap tables so wide ones scroll horizontally instead of overflowing the node.
   table: ({ children }) => (
     <div className="cf-table-wrap nowheel">

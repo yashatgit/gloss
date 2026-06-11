@@ -69,15 +69,22 @@ export function streamTranscription(
 }
 
 /**
- * Generate an explanatory image for a branch. OpenAI-only (image gen). Weaves
- * the branch's selected passage into the prompt so the image is on-topic.
+ * Generate an explanatory image for a branch. OpenAI-only (image gen). Grounds
+ * the image in the actual conversation — the latest assistant explanation and
+ * the selected passage — so "show this as an image" illustrates the real content.
  */
 export function generateBranchImage(branch: BranchNode, prompt: string): Promise<string> {
   if (!openaiConfigured()) {
     throw new ModelError('Image generation requires an OpenAI API key');
   }
-  const context = branch.anchor.quote;
-  const imagePrompt = `${prompt}\n\nCreate a clear, simple explanatory illustration or diagram in a clean, minimal style with concise labels where helpful. This relates to "${context}" from a technical document.`;
+  const lastAssistant = [...branch.messages].reverse().find((m) => m.role === 'assistant' && m.text);
+  const content = (lastAssistant?.text ?? branch.anchor.quote).slice(0, 1500);
+  const imagePrompt = `Create a clear, well-organized explanatory diagram that visually teaches the concept below. Use a clean, modern flat style. Lay it out logically (boxes, arrows, groupings). Include short labels and ALL TEXT MUST BE SPELLED CORRECTLY and legible — double-check spelling of every word. Avoid long paragraphs; prefer concise labels.
+
+Concept (about "${branch.anchor.quote}"):
+${content}
+
+Extra instruction from the user: ${prompt}`;
   return openaiGenerateImage(imagePrompt);
 }
 

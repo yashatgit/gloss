@@ -529,6 +529,56 @@ input {
   user-select: none;
 }
 
+/* highlight.js syntax theme (light — One Light palette) */
+.cf-codeblock .hljs-comment, .cf-codeblock .hljs-quote { color: #a0a1a7; font-style: italic; }
+.cf-codeblock .hljs-keyword, .cf-codeblock .hljs-selector-tag, .cf-codeblock .hljs-literal,
+.cf-codeblock .hljs-section, .cf-codeblock .hljs-doctag, .cf-codeblock .hljs-keyword .hljs-meta { color: #a626a4; }
+.cf-codeblock .hljs-string, .cf-codeblock .hljs-regexp, .cf-codeblock .hljs-meta .hljs-string,
+.cf-codeblock .hljs-addition { color: #50a14f; }
+.cf-codeblock .hljs-number, .cf-codeblock .hljs-params, .cf-codeblock .hljs-built_in,
+.cf-codeblock .hljs-symbol, .cf-codeblock .hljs-bullet { color: #986801; }
+.cf-codeblock .hljs-title, .cf-codeblock .hljs-title.function_, .cf-codeblock .hljs-attr,
+.cf-codeblock .hljs-attribute, .cf-codeblock .hljs-name, .cf-codeblock .hljs-meta,
+.cf-codeblock .hljs-selector-id, .cf-codeblock .hljs-selector-class { color: #4078f2; }
+.cf-codeblock .hljs-type, .cf-codeblock .hljs-title.class_, .cf-codeblock .hljs-class .hljs-title { color: #c18401; }
+.cf-codeblock .hljs-tag, .cf-codeblock .hljs-variable, .cf-codeblock .hljs-template-variable { color: #e45649; }
+.cf-codeblock .hljs-deletion { color: #e45649; }
+.cf-codeblock .hljs-emphasis { font-style: italic; }
+.cf-codeblock .hljs-strong { font-weight: 600; }
+
+/* dark (One Dark palette) */
+:root[data-theme='dark'] .cf-codeblock .hljs-comment,
+:root[data-theme='dark'] .cf-codeblock .hljs-quote { color: #7f848e; }
+:root[data-theme='dark'] .cf-codeblock .hljs-keyword,
+:root[data-theme='dark'] .cf-codeblock .hljs-selector-tag,
+:root[data-theme='dark'] .cf-codeblock .hljs-literal,
+:root[data-theme='dark'] .cf-codeblock .hljs-section,
+:root[data-theme='dark'] .cf-codeblock .hljs-doctag { color: #c678dd; }
+:root[data-theme='dark'] .cf-codeblock .hljs-string,
+:root[data-theme='dark'] .cf-codeblock .hljs-regexp,
+:root[data-theme='dark'] .cf-codeblock .hljs-meta .hljs-string,
+:root[data-theme='dark'] .cf-codeblock .hljs-addition { color: #98c379; }
+:root[data-theme='dark'] .cf-codeblock .hljs-number,
+:root[data-theme='dark'] .cf-codeblock .hljs-params,
+:root[data-theme='dark'] .cf-codeblock .hljs-built_in,
+:root[data-theme='dark'] .cf-codeblock .hljs-symbol,
+:root[data-theme='dark'] .cf-codeblock .hljs-bullet { color: #d19a66; }
+:root[data-theme='dark'] .cf-codeblock .hljs-title,
+:root[data-theme='dark'] .cf-codeblock .hljs-title.function_,
+:root[data-theme='dark'] .cf-codeblock .hljs-attr,
+:root[data-theme='dark'] .cf-codeblock .hljs-attribute,
+:root[data-theme='dark'] .cf-codeblock .hljs-name,
+:root[data-theme='dark'] .cf-codeblock .hljs-meta,
+:root[data-theme='dark'] .cf-codeblock .hljs-selector-id,
+:root[data-theme='dark'] .cf-codeblock .hljs-selector-class { color: #61afef; }
+:root[data-theme='dark'] .cf-codeblock .hljs-type,
+:root[data-theme='dark'] .cf-codeblock .hljs-title.class_,
+:root[data-theme='dark'] .cf-codeblock .hljs-class .hljs-title { color: #e5c07b; }
+:root[data-theme='dark'] .cf-codeblock .hljs-tag,
+:root[data-theme='dark'] .cf-codeblock .hljs-variable,
+:root[data-theme='dark'] .cf-codeblock .hljs-template-variable,
+:root[data-theme='dark'] .cf-codeblock .hljs-deletion { color: #e06c75; }
+
 /* highlights */
 .markdown-body mark {
   background: var(--mark);
@@ -584,9 +634,53 @@ input {
 .msg-image img {
   display: block;
   width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  object-position: left top;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--field);
+  cursor: zoom-in;
+}
+
+/* full-screen image lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 4vh 4vw;
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  cursor: zoom-out;
+  animation: fadeIn 0.15s ease;
+}
+.lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  border-radius: 12px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  background: #fff;
+}
+.lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .msg-image figcaption {
   margin-top: 6px;
