@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gloss Home — 1 · Spotlight</title>
+<style>
+  :root {
+    --ink:#1c1c21; --soft:#6f6f78; --faint:#a6a6b0;
+    --accent:#0a6cff; --accent-2:#7c5cff; --grad:linear-gradient(135deg,var(--accent),var(--accent-2));
+    --glass:rgba(255,255,255,.46); --glass-strong:rgba(255,255,255,.68);
+    --hairline:rgba(255,255,255,.65); --border:rgba(40,50,90,.12);
+    --shadow:0 32px 80px rgba(40,50,90,.18), 0 6px 18px rgba(40,50,90,.08);
+    --font-ui:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;
+    --font-read:ui-serif,'New York',Georgia,serif;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:var(--font-ui);color:var(--ink);min-height:100vh;overflow-x:hidden;background:#eef0f6;-webkit-font-smoothing:antialiased}
+  .mesh{position:fixed;inset:-20%;z-index:0;filter:blur(70px) saturate(130%);pointer-events:none}
+  .blob{position:absolute;border-radius:50%;opacity:.55;animation:drift 26s ease-in-out infinite alternate}
+  .b1{width:46vw;height:46vw;left:-8%;top:-12%;background:#ffd9c2}.b2{width:42vw;height:42vw;right:-6%;top:8%;background:#c5d8ff;animation-delay:-8s}
+  .b3{width:38vw;height:38vw;left:28%;bottom:-18%;background:#e7d4ff;animation-delay:-16s}.b4{width:24vw;height:24vw;right:24%;bottom:6%;background:#c9f3e4;animation-delay:-4s}
+  @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(4vw,3vh) scale(1.12)}}
+
+  .page{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:13vh 28px 80px;display:flex;flex-direction:column;align-items:center}
+
+  .wordmark{font-family:var(--font-read);font-size:64px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .wordmark .dot{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tagline{margin-top:14px;font-size:18px;color:var(--soft);text-align:center;max-width:46ch;line-height:1.55}
+  .tagline b{color:var(--ink);font-weight:600}
+
+  /* the omnibox — one glass capture surface for everything */
+  .capture{margin-top:44px;width:100%;border-radius:26px;background:var(--glass-strong);
+    -webkit-backdrop-filter:blur(36px) saturate(180%);backdrop-filter:blur(36px) saturate(180%);
+    box-shadow:var(--shadow);position:relative}
+  .capture::before{content:'';position:absolute;inset:0;border-radius:26px;padding:1.2px;pointer-events:none;
+    background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.25) 38%,rgba(120,140,255,.3));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  .capture textarea{width:100%;min-height:170px;border:none;outline:none;background:transparent;resize:none;
+    padding:26px 28px 12px;font:inherit;font-size:17px;line-height:1.6;color:var(--ink)}
+  .capture textarea::placeholder{color:var(--faint)}
+  .capture-bar{display:flex;align-items:center;gap:8px;padding:10px 14px 14px}
+  .hint{display:flex;align-items:center;gap:14px;color:var(--faint);font-size:12.5px}
+  .hint kbd{font-family:var(--font-ui);font-size:11px;background:rgba(40,50,90,.07);border-radius:5px;padding:2px 7px;color:var(--soft)}
+  .spacer{flex:1}
+  .chipbtn{display:flex;align-items:center;gap:7px;border:none;border-radius:99px;padding:9px 16px;font:inherit;
+    font-size:13px;font-weight:500;background:rgba(40,50,90,.06);color:var(--ink);cursor:pointer}
+  .chipbtn:hover{background:rgba(40,50,90,.1)}
+  .go{border:none;border-radius:99px;padding:11px 24px;font:inherit;font-size:14px;font-weight:600;color:#fff;
+    background:var(--grad);box-shadow:0 8px 24px rgba(10,108,255,.35);cursor:pointer}
+  .go:hover{filter:brightness(1.07)}
+  .drop-note{margin-top:14px;font-size:13px;color:var(--faint)}
+  .drop-note b{color:var(--soft);font-weight:600}
+
+  /* recent shelf — horizontal glass cards */
+  .shelf-head{width:100%;display:flex;align-items:baseline;margin-top:64px}
+  .shelf-head h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .shelf-head a{margin-left:auto;font-size:13px;color:var(--accent);text-decoration:none}
+  .shelf{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+  .card{position:relative;border-radius:20px;background:var(--glass);padding:18px 18px 14px;cursor:pointer;
+    -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+    box-shadow:0 14px 40px rgba(40,50,90,.12);transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s}
+  .card::before{content:'';position:absolute;inset:0;border-radius:20px;padding:1px;pointer-events:none;
+    background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(255,255,255,.2) 40%,rgba(120,140,255,.22));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  .card:hover{transform:translateY(-5px);box-shadow:var(--shadow)}
+  .card h3{font-family:var(--font-read);font-size:16.5px;font-weight:600;line-height:1.3;letter-spacing:-.01em;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card p{margin-top:8px;font-family:var(--font-read);font-size:13px;line-height:1.55;color:var(--soft);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .meta{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:11.5px;color:var(--faint)}
+  .meta .branches{display:flex;align-items:center;gap:4px;color:var(--accent);font-weight:600}
+  .meta .cost{margin-left:auto;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .src{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .ribbon{position:fixed;bottom:18px;right:18px;z-index:9;font-size:12px;font-weight:700;padding:9px 16px;border-radius:99px;
+    background:var(--glass-strong);box-shadow:var(--shadow);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+</style>
+</head>
+<body>
+  <div class="mesh"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
+  <div class="ribbon">Home · 1 — Spotlight</div>
+
+  <div class="page">
+    <div class="wordmark">Gloss<span class="dot">.</span></div>
+    <p class="tagline">Read anything deeply. <b>Select a passage, branch off,</b> and let AI unpack it — right where the question came up.</p>
+
+    <div class="capture">
+      <textarea placeholder="Paste an article, markdown, or a screenshot… or just drop a PDF here."></textarea>
+      <div class="capture-bar">
+        <span class="hint"><span><kbd>⌘V</kbd> paste</span><span><kbd>drag</kbd> PDF / image</span></span>
+        <span class="spacer"></span>
+        <button class="chipbtn">⬆ PDF</button>
+        <button class="chipbtn">🖼 Image</button>
+        <button class="chipbtn">Claude Sonnet 4.6 ▾</button>
+        <button class="go">Start reading →</button>
+      </div>
+    </div>
+
+    <div class="shelf-head"><h2>Continue reading</h2><a href="#">All documents →</a></div>
+    <div class="shelf">
+      <div class="card">
+        <span class="src">PDF</span>
+        <h3>Revising Masking Architecture for Effective Egress Transformation</h3>
+        <p>The current design has masking happening at the wrong architectural layer. Masking is fundamentally a presentation concern…</p>
+        <div class="meta"><span class="branches">⑂ 7 branches</span><span>Jun 11</span><span class="cost">$0.018</span></div>
+      </div>
+      <div class="card">
+        <span class="src">Article</span>
+        <h3>Attention Is All You Need</h3>
+        <p>The dominant sequence transduction models are based on complex recurrent or convolutional neural networks…</p>
+        <div class="meta"><span class="branches">⑂ 3 branches</span><span>Jun 10</span><span class="cost">$0.004</span></div>
+      </div>
+      <div class="card">
+        <span class="src">Image</span>
+        <h3>The Water Cycle</h3>
+        <p>The water cycle describes how water evaporates from the surface, rises into the atmosphere, cools and condenses…</p>
+        <div class="meta"><span class="branches">⑂ 1 branch</span><span>Jun 10</span><span class="cost">$0.001</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
