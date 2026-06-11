@@ -97,7 +97,9 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
       ? { width: branch.width ?? 380 }
       : {
           width: branch.width ?? 380,
-          ...(branch.height ? { height: branch.height, maxHeight: 'none' as const } : {}),
+          // Generous default reading height; overridden once the user resizes.
+          height: branch.height ?? 520,
+          maxHeight: 'none' as const,
         };
 
   return (

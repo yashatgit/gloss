@@ -29,8 +29,16 @@ export function Thread({
   const docId = useCanvasStore((s) => s.doc?.id);
   const imageLoading = useCanvasStore((s) => !!s.imageLoading[nodeId]);
 
-  // Throttle to one scroll per frame — deltas arrive far faster than 60Hz.
+  // Follow streaming output ONLY when the user is already at the bottom. If
+  // they scroll up to read, their position is left intact (no yanking down).
+  const stickRef = useRef(true);
+  const onScroll = () => {
+    const el = containerRef.current;
+    if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  };
+
   useEffect(() => {
+    if (!stickRef.current) return;
     const raf = requestAnimationFrame(() => {
       const el = containerRef.current;
       if (el) el.scrollTop = el.scrollHeight;
@@ -39,7 +47,7 @@ export function Thread({
   }, [messages.length, streamingText, imageLoading]);
 
   return (
-    <div ref={containerRef} className="thread nowheel nodrag">
+    <div ref={containerRef} className="thread nowheel nodrag" onScroll={onScroll}>
       {messages.map((m) => (
         <div key={m.id} className={`msg msg-${m.role}`}>
           {m.role !== 'assistant' ? (
