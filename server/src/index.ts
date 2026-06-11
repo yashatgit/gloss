@@ -19,7 +19,7 @@ const { configuredProviders } = await import('./ai/client');
 const providers = configuredProviders();
 if (providers.length === 0) {
   console.warn(
-    'WARNING: no provider API keys set (ANTHROPIC_API_KEY / OPENAI_API_KEY) — AI requests will fail. Copy .env.example to .env.',
+    'No provider API keys set — add one in the app (Settings → API keys), or set ANTHROPIC_API_KEY / OPENAI_API_KEY.',
   );
 } else {
   console.log(`configured providers: ${providers.join(', ')}`);

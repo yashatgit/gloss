@@ -6,9 +6,10 @@
     "dev": "pnpm --parallel -r run dev",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "electron:dev": "pnpm --filter @gloss/desktop electron",
-    "desktop:build": "pnpm --filter @gloss/client build && pnpm --filter @gloss/desktop build",
-    "desktop:start": "pnpm run desktop:build && pnpm --filter @gloss/desktop start"
+    "electron:dev": "pnpm --filter @gloss/desktop run electron",
+    "desktop:build": "pnpm --filter @gloss/client run build && pnpm --filter @gloss/desktop run build",
+    "desktop:start": "pnpm run desktop:build && pnpm --filter @gloss/desktop run start",
+    "desktop:dist": "pnpm run desktop:build && pnpm --filter @gloss/desktop run pack"
   },
   "packageManager": "pnpm@11.5.2"
 }

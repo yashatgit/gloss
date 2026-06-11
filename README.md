@@ -27,7 +27,16 @@ pnpm electron:dev
 
 # Production-style: build the client + bundle the server, run the self-contained app
 pnpm desktop:start
+
+# Package a macOS app + .dmg you can drag into Applications
+pnpm desktop:dist     # → desktop/release/Gloss-<version>-arm64.dmg
 ```
+
+The `.dmg` is **unsigned** (built with `identity: null`), so the first launch
+needs a right-click → **Open** to get past Gatekeeper (or
+`xattr -dr com.apple.quarantine /Applications/Gloss.app`). The desktop app shares
+its data dir with the web app (`~/Library/Application Support/gloss`), so your
+documents and saved keys carry over.
 
 The desktop build (`desktop/`) bundles the Hono API server into a single file
 (`desktop/dist/server.mjs`), starts it in the Electron main process with the

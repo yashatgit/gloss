@@ -6,11 +6,40 @@
   "main": "main.cjs",
   "scripts": {
     "electron": "GLOSS_DEV_URL=http://localhost:5173 electron .",
+    "icon": "node make-icon.mjs",
     "build": "node build.mjs",
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.gloss.app",
+    "productName": "Gloss",
+    "asar": false,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity",
+      "identity": null
+    },
+    "dmg": {
+      "title": "Gloss",
+      "contents": [
+        { "x": 140, "y": 200, "type": "file" },
+        { "x": 400, "y": 200, "type": "link", "path": "/Applications" }
+      ]
+    }
   },
   "devDependencies": {
     "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
     "esbuild": "^0.24.0"
   }
 }

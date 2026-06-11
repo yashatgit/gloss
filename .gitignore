@@ -7,3 +7,4 @@ data/
 
 # electron build output
 desktop/dist/
+desktop/release/

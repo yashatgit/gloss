@@ -13,7 +13,9 @@ const { spawn } = require('node:child_process');
 
 const DEV_URL = process.env.GLOSS_DEV_URL;
 const PORT = Number(process.env.PORT || 8787);
-const repoRoot = path.join(__dirname, '..');
+// Match the web app's data dir name so documents + saved keys are shared
+// (resolveDataDir uses "gloss" → ~/Library/Application Support/gloss on macOS).
+app.setName('gloss');
 let serverProc = null;
 
 function ping(url) {
@@ -41,14 +43,17 @@ async function waitForServer(url, timeoutMs = 20000) {
 
 async function startServer() {
   if (DEV_URL) return; // dev: API runs under `pnpm dev`
+  // Everything the packaged app needs lives under desktop/ (server.mjs + the
+  // copied client build), so paths are relative to __dirname — works both from
+  // the repo and from inside Gloss.app/Contents/Resources/app.
   serverProc = spawn(process.execPath, [path.join(__dirname, 'dist', 'server.mjs')], {
-    cwd: repoRoot,
+    cwd: __dirname,
     env: {
       ...process.env,
       ELECTRON_RUN_AS_NODE: '1',
       PORT: String(PORT),
       GLOSS_DATA_DIR: app.getPath('userData'),
-      GLOSS_SERVE_CLIENT: path.join(repoRoot, 'client', 'dist'),
+      GLOSS_SERVE_CLIENT: path.join(__dirname, 'dist', 'client'),
     },
     stdio: 'inherit',
   });
