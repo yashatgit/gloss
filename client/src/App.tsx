@@ -27,6 +27,12 @@ export default function App() {
 
   return (
     <>
+      <div className="mesh" aria-hidden>
+        <div className="blob b1" />
+        <div className="blob b2" />
+        <div className="blob b3" />
+        <div className="blob b4" />
+      </div>
       {hasDoc ? <CanvasScreen /> : <HomePage />}
       <SettingsButton />
     </>

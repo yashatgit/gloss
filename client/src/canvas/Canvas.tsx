@@ -19,7 +19,7 @@ import { tidyPositions, type LayoutNode } from './layout';
 import { DocumentNodeView } from './DocumentNode';
 import { BranchNodeView } from './BranchNode';
 import { SelectionOverlay } from './SelectionOverlay';
-import { FloatingMenu } from '../components/FloatingMenu';
+import { Dock } from '../components/Dock';
 
 // Must be module-level constants — a new object per render makes React Flow
 // remount every node.
@@ -78,19 +78,21 @@ function CanvasInner() {
   }, [domainNodes, setRfNodes]);
 
   // Edges are derived, never stored: anchor handle on the parent → branch.
-  const edges = useMemo<Edge[]>(
-    () =>
-      domainNodes
-        .filter((n): n is BranchNodeT => n.kind === 'branch')
-        .map((b) => ({
-          id: `e-${b.id}`,
-          source: b.anchor.nodeId,
-          sourceHandle: `anchor-${b.id}`,
-          target: b.id,
-          targetHandle: 'in',
-        })),
-    [domainNodes],
-  );
+  // A streaming branch's edge gets the animated "flowing" dash.
+  const streamingKey = useCanvasStore((s) => Object.keys(s.streaming).sort().join(','));
+  const edges = useMemo<Edge[]>(() => {
+    const streamingIds = new Set(streamingKey.split(',').filter(Boolean));
+    return domainNodes
+      .filter((n): n is BranchNodeT => n.kind === 'branch')
+      .map((b) => ({
+        id: `e-${b.id}`,
+        source: b.anchor.nodeId,
+        sourceHandle: `anchor-${b.id}`,
+        target: b.id,
+        targetHandle: 'in',
+        className: streamingIds.has(b.id) ? 'flowing' : undefined,
+      }));
+  }, [domainNodes, streamingKey]);
 
   return (
     <div className="canvas-root">
@@ -116,12 +118,21 @@ function CanvasInner() {
         panOnDrag
         onNodeDragStop={(_, node) => persistPosition(node.id, node.position)}
       >
-        <Background gap={32} color="rgba(130,125,120,0.18)" />
+        <Background gap={32} color="rgba(130,125,140,0.16)" />
         <Controls showInteractive={false} />
         <MiniMap pannable zoomable />
         <FocusController />
       </ReactFlow>
-      <FloatingMenu tidy={tidy} />
+      {/* shared gradient for edge strokes (referenced from CSS) */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden>
+        <defs>
+          <linearGradient id="gloss-edge-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" style={{ stopColor: 'var(--accent)' }} />
+            <stop offset="1" style={{ stopColor: 'var(--accent-2)' }} />
+          </linearGradient>
+        </defs>
+      </svg>
+      <Dock tidy={tidy} />
     </div>
   );
 }
