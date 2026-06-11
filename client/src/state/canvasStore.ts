@@ -10,12 +10,12 @@ import {
   type ModelInfo,
   type Position,
   type Provider,
-} from '@reader/shared';
+} from '@gloss/shared';
 import * as api from '../api/client';
 
-const MODEL_STORAGE_KEY = 'reader.selectedModel';
-const THEME_KEY = 'reader.theme';
-const FONT_KEY = 'reader.fontScale';
+const MODEL_STORAGE_KEY = 'gloss.selectedModel';
+const THEME_KEY = 'gloss.theme';
+const FONT_KEY = 'gloss.fontScale';
 
 export type Theme = 'light' | 'dark';
 export const FONT_MIN = 0.85;
@@ -143,8 +143,9 @@ async function consumeStream(
   set((s) => {
     const errors = { ...s.errors };
     delete errors[branchId];
-    // Glide the viewport to the branch the request belongs to.
-    return { streaming: { ...s.streaming, [branchId]: '' }, errors, focusTarget: branchId };
+    // Don't move the viewport for actions on an existing branch (send /
+    // regenerate) — only a brand-new branch glides into view (in createBranch).
+    return { streaming: { ...s.streaming, [branchId]: '' }, errors };
   });
 
   const clearStreaming = (s: CanvasState) => {
@@ -413,7 +414,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         nodes: updateBranch(s.nodes, branchId, (b) => ({ ...b, messages: [...b.messages, userMsg] })),
         imageLoading: { ...s.imageLoading, [branchId]: true },
         errors,
-        focusTarget: branchId,
       };
     });
     const clearLoading = (s: CanvasState) => {

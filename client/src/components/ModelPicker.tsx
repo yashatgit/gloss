@@ -1,5 +1,5 @@
 import { useCanvasStore } from '../state/canvasStore';
-import type { Provider } from '@reader/shared';
+import type { Provider } from '@gloss/shared';
 
 const PROVIDER_LABEL: Record<Provider, string> = {
   anthropic: 'Claude (Anthropic)',

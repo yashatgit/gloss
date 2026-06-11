@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import type { BranchNode } from '@reader/shared';
+import type { BranchNode } from '@gloss/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import type { HighlightSpec } from '../reading/highlights';
 

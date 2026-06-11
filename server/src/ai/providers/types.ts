@@ -1,4 +1,4 @@
-import type { Usage } from '@reader/shared';
+import type { Usage } from '@gloss/shared';
 
 /** Provider-neutral chat message (first-turn anchor preamble already injected). */
 export interface NeutralMessage {

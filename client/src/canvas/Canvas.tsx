@@ -7,12 +7,13 @@ import {
   ReactFlowProvider,
   useNodesState,
   useReactFlow,
+  useStore,
   useStoreApi,
   type Edge,
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { BranchNode as BranchNodeT } from '@reader/shared';
+import type { BranchNode as BranchNodeT } from '@gloss/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import { tidyPositions, type LayoutNode } from './layout';
 import { DocumentNodeView } from './DocumentNode';
@@ -43,6 +44,7 @@ function CanvasInner() {
   const persistPosition = useCanvasStore((s) => s.persistPosition);
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
   useCanvasNavigation();
+  useViewportPersistence();
   const tidy = useTidy();
   useAutoTidy(tidy);
 
@@ -98,12 +100,12 @@ function CanvasInner() {
         onNodesChange={onNodesChange}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
-        fitView
-        fitViewOptions={{ maxZoom: 1, padding: 0.15 }}
         minZoom={0.05}
         maxZoom={2}
         nodesConnectable={false}
         deleteKeyCode={null}
+        // Initial viewport is restored per-doc by useViewportPersistence (no
+        // fitView prop, so reopening a doc keeps your pan/zoom).
         // All wheel/pinch nav is handled by useCanvasNavigation (Figma-style:
         // scroll pans with momentum, pinch + ⌘/Ctrl-scroll zoom to the cursor).
         // RF only keeps left-drag-to-pan on empty canvas.
@@ -127,6 +129,68 @@ function CanvasInner() {
 const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 2;
 const ZOOM_SENSITIVITY = 0.0016; // exp factor per wheel delta unit
+
+interface SavedViewport {
+  x: number;
+  y: number;
+  zoom: number;
+}
+function readViewport(docId: string): SavedViewport | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(`gloss.viewport.${docId}`) ?? '');
+    return v && typeof v.zoom === 'number' ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writeViewport(docId: string, vp: SavedViewport): void {
+  try {
+    localStorage.setItem(`gloss.viewport.${docId}`, JSON.stringify(vp));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Persist pan/zoom per document. Restores the saved viewport when a doc opens
+ * (else fits the view once); saves on any viewport change — including the
+ * custom wheel nav — by watching the RF transform. Reopening a doc therefore
+ * returns you exactly where you left off.
+ */
+function useViewportPersistence() {
+  const docId = useCanvasStore((s) => s.doc?.id);
+  const { setViewport, fitView } = useReactFlow();
+  const transform = useStore((s) => s.transform);
+  const restoredFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!docId) {
+      restoredFor.current = null;
+      return;
+    }
+    if (restoredFor.current === docId) return;
+    const saved = readViewport(docId);
+    if (saved) {
+      void setViewport(saved);
+      restoredFor.current = docId;
+      return;
+    }
+    const t = setTimeout(() => {
+      void fitView({ maxZoom: 1, padding: 0.15 });
+      restoredFor.current = docId;
+    }, 80);
+    return () => clearTimeout(t);
+  }, [docId, setViewport, fitView]);
+
+  useEffect(() => {
+    if (!docId || restoredFor.current !== docId) return;
+    const t = setTimeout(
+      () => writeViewport(docId, { x: transform[0], y: transform[1], zoom: transform[2] }),
+      300,
+    );
+    return () => clearTimeout(t);
+  }, [docId, transform]);
+}
 
 /**
  * Figma-style canvas navigation, all on the wheel:

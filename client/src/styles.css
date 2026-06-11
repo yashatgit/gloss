@@ -1,5 +1,5 @@
 /* ============================================================
-   Reader — Editorial Glass design system (light + dark)
+   Gloss — Editorial Glass design system (light + dark)
    Chrome uses SF; reading uses a New York-style serif.
    ============================================================ */
 
@@ -594,7 +594,8 @@ input {
   color: var(--soft);
   font-style: italic;
 }
-.image-button { padding: 9px 12px; font-size: 1rem; line-height: 1; }
+.image-button { display: grid; place-items: center; padding: 0 12px; color: var(--soft); }
+.image-button:not(:disabled):hover { color: var(--accent); border-color: var(--accent); }
 .image-loading {
   display: flex;
   align-items: center;

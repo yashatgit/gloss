@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { type DocumentSummary } from '@reader/shared';
+import { type DocumentSummary } from '@gloss/shared';
 import * as api from './api/client';
 import { encodeImage, fileToBase64 } from './api/image';
 import { applyFontScale, applyTheme, useCanvasStore } from './state/canvasStore';
@@ -123,7 +123,7 @@ function HomePage() {
   if (importPreview !== null) {
     return (
       <div className="paste-page">
-        <h1>Reader</h1>
+        <h1>Gloss</h1>
         <p>Transcribing your file…</p>
         <div className="import-preview markdown-body">
           {importPreview || 'Reading the file…'}
@@ -134,7 +134,7 @@ function HomePage() {
 
   return (
     <div className="paste-page" onPaste={handlePaste}>
-      <h1>Reader</h1>
+      <h1>Gloss</h1>
       <p>
         Paste long-form text, markdown, or a screenshot — then select anything
         while reading to branch off an AI conversation about it.

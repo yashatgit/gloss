@@ -1,6 +1,6 @@
 import { memo, useCallback, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { Handle, Position, useReactFlow, useStore, type NodeProps } from '@xyflow/react';
-import { formatCost, type BranchNode } from '@reader/shared';
+import { formatCost, type BranchNode } from '@gloss/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import { branchCost } from '../state/cost';
 import { Thread } from '../chat/Thread';
@@ -170,7 +170,8 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
             </button>
           )}
           <Composer
-            disabled={busy}
+            streaming={isStreaming}
+            imageBusy={imageLoading}
             autoFocus={branch.messages.length === 0}
             placeholder={
               branch.messages.length === 0 ? 'Ask about this selection…' : 'Ask a follow-up…'

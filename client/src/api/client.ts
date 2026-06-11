@@ -10,7 +10,7 @@ import type {
   Provider,
   SSEError,
   Usage,
-} from '@reader/shared';
+} from '@gloss/shared';
 import { postSSE } from './sse';
 
 // Relative base only — same origin in dev (Vite proxy) and in Electron later.

@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { Usage } from '@reader/shared';
+import type { Usage } from '@gloss/shared';
 import type { ChatArgs, ChatProvider, StreamChunk, VisionArgs } from './types';
 
 let client: Anthropic | null = null;

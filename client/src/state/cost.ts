@@ -1,4 +1,4 @@
-import { costOfUsage, type BranchNode, type CanvasNode, type Doc } from '@reader/shared';
+import { costOfUsage, type BranchNode, type CanvasNode, type Doc } from '@gloss/shared';
 
 /** Estimated cost of one branch's conversation (token usage + flat image costs). */
 export function branchCost(branch: BranchNode): number {

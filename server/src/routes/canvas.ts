@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { patchNodeSchema } from '@reader/shared';
+import { patchNodeSchema } from '@gloss/shared';
 import { store } from '../store/store';
 
 export const canvasRoute = new Hono();

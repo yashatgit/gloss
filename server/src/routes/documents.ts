@@ -14,7 +14,7 @@ import {
   type Doc,
   type DocumentNode,
   type DocumentSource,
-} from '@reader/shared';
+} from '@gloss/shared';
 import { store } from '../store/store';
 import { assetsDir, docDir } from '../store/paths';
 import { streamTranscription } from '../ai/chat';

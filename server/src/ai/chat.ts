@@ -1,4 +1,4 @@
-import { getModel, visionModelFor, type BranchNode, type Doc } from '@reader/shared';
+import { getModel, visionModelFor, type BranchNode, type Doc } from '@gloss/shared';
 import type { DocState } from '../store/store';
 import { isProviderConfigured, providerClient } from './client';
 import { documentBlock, SYSTEM_INSTRUCTIONS, toNeutralMessages } from './prompts';

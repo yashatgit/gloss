@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { ZodError } from 'zod';
-import { MODELS } from '@reader/shared';
+import { MODELS } from '@gloss/shared';
 import { documentsRoute } from './routes/documents';
 import { branchesRoute } from './routes/branches';
 import { canvasRoute } from './routes/canvas';

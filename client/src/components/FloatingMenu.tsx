@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { formatCost } from '@reader/shared';
+import { formatCost } from '@gloss/shared';
 import { FONT_MAX, FONT_MIN, useCanvasStore } from '../state/canvasStore';
 import { docCost } from '../state/cost';
 import { ModelPicker } from './ModelPicker';

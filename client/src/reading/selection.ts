@@ -1,4 +1,4 @@
-import type { Anchor } from '@reader/shared';
+import type { Anchor } from '@gloss/shared';
 
 /**
  * Anchors address offsets into the RENDERED plain text of an anchor root

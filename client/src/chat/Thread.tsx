@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, type RefObject } from 'react';
-import { costOfUsage, formatCost, getModel, type ChatMessage } from '@reader/shared';
+import { costOfUsage, formatCost, getModel, type ChatMessage } from '@gloss/shared';
 import { assetUrl } from '../api/client';
 import { useCanvasStore } from '../state/canvasStore';
 import { MarkdownView } from '../reading/MarkdownView';

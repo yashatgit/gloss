@@ -7,7 +7,7 @@ import type {
   CanvasNode,
   Doc,
   DocumentSummary,
-} from '@reader/shared';
+} from '@gloss/shared';
 import { canvasPath, docDir, documentPath, indexPath } from './paths';
 
 export interface DocState {

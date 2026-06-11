@@ -1,4 +1,4 @@
-import type { Anchor, BranchNode, CanvasNode, Doc } from '@reader/shared';
+import type { Anchor, BranchNode, CanvasNode, Doc } from '@gloss/shared';
 import type { DocState } from '../store/store';
 import type { NeutralMessage } from './providers/types';
 

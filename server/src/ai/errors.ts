@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import type { SSEError } from '@reader/shared';
+import type { SSEError } from '@gloss/shared';
 import { ModelError } from './chat';
 
 export function toSSEError(err: unknown): SSEError {

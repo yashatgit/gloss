@@ -26,7 +26,7 @@ if (providers.length === 0) {
 }
 
 const server = serve({ fetch: createApp().fetch, port: port() }, (info) => {
-  console.log(`reader server listening on http://localhost:${info.port}`);
+  console.log(`gloss server listening on http://localhost:${info.port}`);
 });
 
 function shutdown() {

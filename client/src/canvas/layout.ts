@@ -1,4 +1,4 @@
-import type { Position } from '@reader/shared';
+import type { Position } from '@gloss/shared';
 
 const COL_GAP = 120; // horizontal gap between depth columns
 const ROW_GAP = 48; // vertical gap between nodes in a column

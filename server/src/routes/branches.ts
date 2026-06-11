@@ -10,13 +10,13 @@ import {
   sendMessageSchema,
   type ChatMessage,
   type Usage,
-} from '@reader/shared';
+} from '@gloss/shared';
 import { store } from '../store/store';
 import { assetsDir, docDir } from '../store/paths';
 import { generateBranchImage, imageInfo } from '../ai/chat';
 import { streamBranch } from '../ai/chat';
 import { toSSEError } from '../ai/errors';
-import type { BranchNode } from '@reader/shared';
+import type { BranchNode } from '@gloss/shared';
 import type { DocState } from '../store/store';
 
 export const branchesRoute = new Hono();

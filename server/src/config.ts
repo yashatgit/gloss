@@ -9,9 +9,9 @@ export function port(): number {
 }
 
 export function resolveDataDir(): string {
-  if (process.env.READER_DATA_DIR) return process.env.READER_DATA_DIR;
+  if (process.env.GLOSS_DATA_DIR) return process.env.GLOSS_DATA_DIR;
   if (process.platform === 'darwin') {
-    return path.join(os.homedir(), 'Library', 'Application Support', 'reader');
+    return path.join(os.homedir(), 'Library', 'Application Support', 'gloss');
   }
   return path.join(process.cwd(), 'data');
 }

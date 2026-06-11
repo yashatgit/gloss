@@ -1,6 +1,6 @@
 import { memo, useRef } from 'react';
 import type { NodeProps } from '@xyflow/react';
-import { formatCost } from '@reader/shared';
+import { formatCost } from '@gloss/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import { importCost } from '../state/cost';
 import { MarkdownView } from '../reading/MarkdownView';

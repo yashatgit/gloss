@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { Usage } from '@reader/shared';
+import type { Usage } from '@gloss/shared';
 import { type ChatArgs, type ChatProvider, EMPTY_USAGE, type StreamChunk, type VisionArgs } from './types';
 
 let client: OpenAI | null = null;

@@ -1,4 +1,4 @@
-# Reader
+# Gloss
 
 A branching reading experience. Paste long-form text, markdown, or a screenshot;
 read it as a document on an infinite canvas; select any word, phrase, or paragraph
@@ -37,6 +37,6 @@ client/   Vite + React SPA: canvas, selection→anchor mapping, highlight inject
 ```
 
 Data persists as JSON under `~/Library/Application Support/reader` (override with
-`READER_DATA_DIR`). The server is structured for a later Electron build: pure
+`GLOSS_DATA_DIR`). The server is structured for a later Electron build: pure
 `createApp()` factory, `process.env`-only config, relative `/api` URLs, no native
 modules.

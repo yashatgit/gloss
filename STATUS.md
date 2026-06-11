@@ -1,4 +1,4 @@
-# Reader — Status & Handoff
+# Gloss — Status & Handoff
 
 _Last updated: 2026-06-10_
 
@@ -117,7 +117,7 @@ client/src/
 ```
 
 Data persists as JSON under `~/Library/Application Support/reader`
-(override with `READER_DATA_DIR`).
+(override with `GLOSS_DATA_DIR`).
 
 ## Git log
 

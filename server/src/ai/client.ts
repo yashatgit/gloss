@@ -1,4 +1,4 @@
-import type { Provider } from '@reader/shared';
+import type { Provider } from '@gloss/shared';
 import { anthropicProvider, isConfigured as anthropicConfigured } from './providers/anthropic';
 import { openaiProvider, isConfigured as openaiConfigured } from './providers/openai';
 import type { ChatProvider } from './providers/types';
