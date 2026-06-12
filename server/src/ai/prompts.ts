@@ -81,13 +81,15 @@ function buildBreadcrumb(state: DocState, anchor: Anchor): string {
   const parent = findNode(state, anchor.nodeId);
   if (!parent || parent.kind !== 'branch') return '';
 
-  const quotes: string[] = [];
+  const links: string[] = [];
   let cur: CanvasNode | undefined = parent;
   while (cur && cur.kind === 'branch') {
-    quotes.unshift(cur.anchor.quote);
-    cur = findNode(state, cur.anchor.nodeId);
+    links.unshift(
+      cur.anchor ? `a branch on "${cur.anchor.quote}"` : 'a whole-document discussion',
+    );
+    cur = findNode(state, cur.anchor ? cur.anchor.nodeId : cur.parentNodeId);
   }
-  const chain = ['the document', ...quotes.map((q) => `a branch on "${q}"`)].join(' → ');
+  const chain = ['the document', ...links].join(' → ');
 
   let anchoredMessage = '';
   if (anchor.messageId) {
@@ -111,6 +113,14 @@ export function buildFirstTurnText(
   branch: BranchNode,
   userText: string,
 ): string {
+  // Whole-document discussion: no passage to anchor to — the full document is
+  // already in the cached system prefix, so just frame the scope and pass the
+  // user's text through.
+  if (!branch.anchor) {
+    return `<discussion_context>The user is discussing the whole document, not a specific selected passage. Answer about the document as a whole; draw on any part of it.</discussion_context>
+
+${userText}`;
+  }
   const unitText = anchoredUnitText(state, branch.anchor);
   const surrounding = surroundingParagraph(unitText, branch.anchor);
   const breadcrumb = buildBreadcrumb(state, branch.anchor);

@@ -34,7 +34,8 @@ export const anchorSchema = z.object({
 
 export const createBranchSchema = z.object({
   parentNodeId: z.string(),
-  anchor: anchorSchema,
+  // Absent → a whole-document discussion (not anchored to a passage).
+  anchor: anchorSchema.optional(),
   title: z.string().min(1).max(200),
 });
 

@@ -74,7 +74,7 @@ export function getCanvas(docId: string) {
 
 export function createBranch(
   docId: string,
-  params: { parentNodeId: string; anchor: Anchor; title: string },
+  params: { parentNodeId: string; anchor?: Anchor; title: string },
 ) {
   return fetch(`${BASE}/documents/${docId}/branches`, {
     method: 'POST',

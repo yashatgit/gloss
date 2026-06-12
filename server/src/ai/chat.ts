@@ -79,10 +79,11 @@ export function generateBranchImage(
     throw new ModelError('Image generation requires an OpenAI API key');
   }
   const lastAssistant = [...branch.messages].reverse().find((m) => m.role === 'assistant' && m.text);
-  const content = (lastAssistant?.text ?? branch.anchor.quote).slice(0, 1500);
+  const subject = branch.anchor?.quote ?? 'this document';
+  const content = (lastAssistant?.text ?? subject).slice(0, 1500);
   const imagePrompt = `Create a clear, well-organized explanatory diagram that visually teaches the concept below. Use a clean, modern flat style. Lay it out logically (boxes, arrows, groupings). Include short labels and ALL TEXT MUST BE SPELLED CORRECTLY and legible — double-check spelling of every word. Avoid long paragraphs; prefer concise labels.
 
-Concept (about "${branch.anchor.quote}"):
+Concept (about "${subject}"):
 ${content}
 
 Extra instruction from the user: ${prompt}`;

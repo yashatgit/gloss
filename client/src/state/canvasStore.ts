@@ -142,11 +142,13 @@ interface CanvasState {
 
   createBranch(
     parentNodeId: string,
-    anchor: Anchor,
+    anchor: Anchor | null,
     title: string,
     position: Position | null,
     firstMessage?: string,
   ): Promise<string | null>;
+  /** Open an anchorless, whole-document discussion off the document node. */
+  discussDocument(): Promise<string | null>;
   sendMessage(branchId: string, text: string): Promise<void>;
   regenerate(branchId: string): Promise<void>;
   generateImage(branchId: string, prompt: string): Promise<void>;
@@ -416,7 +418,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const doc = get().doc;
     if (!doc) return null;
     try {
-      const { node } = await api.createBranch(doc.id, { parentNodeId, anchor, title });
+      const { node } = await api.createBranch(doc.id, {
+        parentNodeId,
+        anchor: anchor ?? undefined,
+        title,
+      });
       if (position) node.position = position;
       // Glide to the new branch (sendMessage will re-affirm focus on stream start).
       set((s) => ({ nodes: [...s.nodes, node], focusTarget: node.id, tidyNonce: s.tidyNonce + 1 }));
@@ -433,6 +439,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }));
       return null;
     }
+  },
+
+  discussDocument: async () => {
+    const { doc, nodes } = get();
+    if (!doc) return null;
+    const docNode = nodes.find((n) => n.kind === 'document');
+    if (!docNode) return null;
+    // Reuse an existing whole-document discussion rather than stacking duplicates.
+    const existing = nodes.find(
+      (n) => n.kind === 'branch' && !n.anchor && n.parentNodeId === docNode.id,
+    );
+    if (existing) {
+      set({ focusTarget: existing.id });
+      return existing.id;
+    }
+    return get().createBranch(docNode.id, null, 'Whole document', null);
   },
 
   sendMessage: async (branchId, text) => {

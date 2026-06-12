@@ -40,7 +40,7 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
 
   const highlightsFor = useCallback(
     (messageId: string) =>
-      toHighlights(anchored.filter((b) => b.anchor.messageId === messageId)),
+      toHighlights(anchored.filter((b) => b.anchor?.messageId === messageId)),
     [anchored],
   );
 
@@ -88,6 +88,7 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
   );
 
   if (!branch) return null;
+  const isDiscussion = !branch.anchor;
   const isStreaming = streamingText !== null;
   const busy = isStreaming || imageLoading;
   const cost = branchCost(branch);
@@ -115,13 +116,13 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
         className="anchor-handle"
       />
       <div className="node-drag-handle node-header">
-        <span className="node-kind">branch</span>
+        <span className="node-kind">{isDiscussion ? 'discussion' : 'branch'}</span>
         <button
           className="node-title node-title-btn"
-          title={`Go to source: “${branch.anchor.quote}”`}
+          title={isDiscussion ? 'Back to document' : `Go to source: “${branch.anchor!.quote}”`}
           onClick={focusSource}
         >
-          “{truncate(branch.anchor.quote, 38)}”
+          {isDiscussion ? 'Whole document' : `“${truncate(branch.anchor!.quote, 38)}”`}
         </button>
         {cost > 0 && (
           <span className="branch-cost" title="Estimated cost of this branch">
@@ -175,7 +176,11 @@ export const BranchNodeView = memo(function BranchNodeView({ id }: NodeProps) {
             imageBusy={imageLoading}
             autoFocus={branch.messages.length === 0}
             placeholder={
-              branch.messages.length === 0 ? 'Ask about this selection…' : 'Ask a follow-up…'
+              branch.messages.length > 0
+                ? 'Ask a follow-up…'
+                : isDiscussion
+                  ? 'Ask about this document…'
+                  : 'Ask about this selection…'
             }
             onSend={(text) => void sendMessage(id, text)}
             onStop={isStreaming ? () => abortMessage(id) : undefined}

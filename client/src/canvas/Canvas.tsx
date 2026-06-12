@@ -87,8 +87,11 @@ function CanvasInner() {
       .filter((n): n is BranchNodeT => n.kind === 'branch')
       .map((b) => ({
         id: `e-${b.id}`,
-        source: b.anchor.nodeId,
-        sourceHandle: `anchor-${b.id}`,
+        // Anchored branches emanate from the highlight's rail handle; a
+        // whole-document discussion has no highlight, so it leaves the parent
+        // node's generic "out" handle instead.
+        source: b.anchor ? b.anchor.nodeId : b.parentNodeId,
+        sourceHandle: b.anchor ? `anchor-${b.id}` : 'out',
         target: b.id,
         targetHandle: 'in',
         className: streamingIds.has(b.id) ? 'flowing' : undefined,

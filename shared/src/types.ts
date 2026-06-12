@@ -75,7 +75,8 @@ export interface BranchNode {
   position: Position;
   /** Document node or another branch node. */
   parentNodeId: string;
-  anchor: Anchor;
+  /** Absent → a whole-document discussion (not tied to a selected passage). */
+  anchor?: Anchor;
   title: string;
   messages: ChatMessage[];
   /** User-resized dimensions (px). Absent → default size. */

@@ -1,5 +1,5 @@
 import { memo, useRef } from 'react';
-import type { NodeProps } from '@xyflow/react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { formatCost } from '@gloss/shared';
 import { useCanvasStore } from '../state/canvasStore';
 import { importCost } from '../state/cost';
@@ -18,6 +18,7 @@ export const DocumentNodeView = memo(function DocumentNodeView({ id }: NodeProps
     return n?.kind === 'document' ? n.width : 720;
   });
   const isFlashing = useCanvasStore((s) => s.flashNodeId === id);
+  const discussDocument = useCanvasStore((s) => s.discussDocument);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchored = useAnchoredBranches(id);
@@ -39,7 +40,22 @@ export const DocumentNodeView = memo(function DocumentNodeView({ id }: NodeProps
             {formatCost(importCost(doc))}
           </span>
         )}
+        <button
+          className="node-icon-btn doc-discuss-btn nodrag"
+          title="Chat about the whole document"
+          onClick={() => void discussDocument()}
+        >
+          💬 Discuss
+        </button>
       </div>
+      {/* Generic source for whole-document discussions (anchorless branches). */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="out"
+        isConnectable={false}
+        className="anchor-handle doc-out-handle"
+      />
       {/* nowheel: wheel scrolls this pane, not the canvas zoom.
           nodrag: drag-select selects text instead of moving the node. */}
       <div ref={scrollRef} className="node-scroll nowheel nodrag">

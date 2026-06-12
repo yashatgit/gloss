@@ -10,19 +10,21 @@ export function useAnchoredBranches(nodeId: string): BranchNode[] {
   return useMemo(
     () =>
       nodes.filter(
-        (n): n is BranchNode => n.kind === 'branch' && n.anchor.nodeId === nodeId,
+        (n): n is BranchNode => n.kind === 'branch' && n.anchor?.nodeId === nodeId,
       ),
     [nodes, nodeId],
   );
 }
 
 export function toHighlights(branches: BranchNode[]): HighlightSpec[] {
-  return branches.map((b) => ({
-    branchId: b.id,
-    start: b.anchor.start,
-    end: b.anchor.end,
-    quote: b.anchor.quote,
-  }));
+  return branches
+    .filter((b): b is BranchNode & { anchor: NonNullable<BranchNode['anchor']> } => !!b.anchor)
+    .map((b) => ({
+      branchId: b.id,
+      start: b.anchor.start,
+      end: b.anchor.end,
+      quote: b.anchor.quote,
+    }));
 }
 
 /**

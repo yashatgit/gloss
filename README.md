@@ -6,6 +6,21 @@ and **branch off** an AI conversation anchored to that selection. Branches are f
 Claude conversations that know the whole document — and selections inside AI answers
 can branch again, recursively.
 
+![The Gloss canvas: a document with anchored branch conversations and a whole-document discussion](docs/screenshots/canvas-overview.png)
+
+> Reading a passage, branching off questions where they come up, and chasing a
+> follow-up by branching again _inside_ an answer:
+>
+> ![Nested branching: a selection inside an AI answer opens its own conversation](docs/screenshots/conversation-closeup.png)
+
+Paste anything on the home page to start — your library lives below the omnibox:
+
+![The Gloss home page: capture omnibox and document library](docs/screenshots/home.png)
+
+> The screenshots above are reproducible without an API key:
+> `GLOSS_DATA_DIR=/tmp/gloss-showcase node scripts/seed-showcase.mjs`, then
+> `GLOSS_DATA_DIR=/tmp/gloss-showcase pnpm dev`.
+
 ## Setup
 
 ```sh
@@ -51,6 +66,10 @@ the same origin. Because it's BYOK, the packaged app needs no `.env`.
 - **Branching** — select text in the document (or in any AI answer) → a floating
   toolbar offers *Explain*, *More context*, or *Ask…*. Each creates an anchored
   branch node with its own streaming chat.
+- **Whole-document chat** — the **💬 Discuss** button in the document header opens
+  a discussion about the entire document rather than one passage. It's a branch
+  with no anchor, so it shares the same streaming, follow-ups, and nested
+  branching as a selection branch.
 - **Whole-document awareness** — every branch request carries the full document in
   a prompt-cached system block (`cache_control: ephemeral`), so all branches of a
   document share one cache entry. Cache hits show in the per-reply usage badge.
@@ -65,7 +84,7 @@ server/   Hono API (createApp() is Electron-mountable), Claude streaming, JSON s
 client/   Vite + React SPA: canvas, selection→anchor mapping, highlight injection
 ```
 
-Data persists as JSON under `~/Library/Application Support/reader` (override with
+Data persists as JSON under `~/Library/Application Support/gloss` (override with
 `GLOSS_DATA_DIR`). The server is structured for a later Electron build: pure
 `createApp()` factory, `process.env`-only config, relative `/api` URLs, no native
 modules.

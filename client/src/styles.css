@@ -605,6 +605,24 @@ input {
   opacity: 0.9;
   pointer-events: none;
 }
+/* The whole-document discussion edge leaves from near the header. */
+.doc-out-handle { top: 28px; }
+
+/* "Discuss" pill in the document header — opens a whole-document chat. */
+.doc-discuss-btn {
+  width: auto;
+  height: 26px;
+  padding: 0 12px;
+  margin-left: auto;
+  border-radius: 13px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 4px;
+  color: var(--accent);
+  background: var(--border-soft);
+  flex-shrink: 0;
+}
+.doc-discuss-btn:hover { color: #fff; background: var(--accent); }
 
 /* corner resize grip on branch nodes */
 .resize-handle {
